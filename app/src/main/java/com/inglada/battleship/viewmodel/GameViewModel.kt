@@ -2,6 +2,7 @@ package com.inglada.battleship.viewmodel
 
 import androidx.lifecycle.ViewModel
 import com.inglada.battleship.model.Cell
+import com.inglada.battleship.model.CellState
 import com.inglada.battleship.model.Position
 import com.inglada.battleship.model.Ship
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -100,6 +101,44 @@ class GameViewModel : ViewModel() {
      * Handles a user clicking on a specific cell.
      */
     fun onCellClicked(position: Position) {
-        // TODO: Implement the logic to change cell state (HIT or MISS)
+        val currentBoard = _boardState.value
+        val clickedCell = currentBoard[position.row][position.col]
+
+        // If the cell is already revealed, do nothing
+        if (clickedCell.state != CellState.HIDDEN) return
+
+        // Determine if it's a hit or a miss
+        val newState = if (clickedCell.hasShip) CellState.HIT else CellState.MISS
+
+        // Create a completely new board to respect Jetpack Compose immutability rules.
+        val newBoard = currentBoard.map { row ->
+            row.map { cell ->
+                if (cell.position == position) {
+                    cell.copy(state = newState)
+                } else {
+                    cell
+                }
+            }
+        }
+
+        // Emit the new board state
+        _boardState.value = newBoard
+
+        // Check if this move won the game
+        checkWinCondition(newBoard)
+    }
+
+    /**
+     * Checks if all placed ships are fully sunk.
+     */
+    private fun checkWinCondition(board: List<List<Cell>>) {
+        val allSunk = placedShips.all { ship ->
+            ship.isSunk(board)
+        }
+
+        if (allSunk) {
+            // TODO: Trigger game over, navigate to results screen and generate log!
+            println("GAME OVER - YOU WIN!") // Will see this in the Logcat for now
+        }
     }
 }
