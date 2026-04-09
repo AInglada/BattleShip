@@ -1,17 +1,98 @@
 package com.inglada.battleship.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 
 @Composable
-fun ConfigScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+fun ConfigScreen(
+    // We will use this callback later to navigate to the Game screen passing the selected data
+    onStartGameClicked: (playerName: String, gridSize: Int, isTimeEnabled: Boolean, timeLimit: Int) -> Unit
+) {
+    // UI States using 'remember' to survive recompositions
+    var playerName by remember { mutableStateOf("Admiral") }
+    var gridSize by remember { mutableFloatStateOf(8f) } // 8x8 by default
+    var isTimeEnabled by remember { mutableStateOf(false) }
+    var timeLimit by remember { mutableFloatStateOf(60f) } // 60 seconds by default
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp) // Adds space between elements
     ) {
-        Text(text = "Configuration Screen: Setup your fleet!")
+        Text(
+            text = "Game Configuration",
+            style = MaterialTheme.typography.headlineMedium
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 1. Player Alias Input
+        OutlinedTextField(
+            value = playerName,
+            onValueChange = { playerName = it },
+            label = { Text("Player Alias") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // 2. Grid Size Selection
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(text = "Grid Size: ${gridSize.roundToInt()} x ${gridSize.roundToInt()}")
+            Slider(
+                value = gridSize,
+                onValueChange = { gridSize = it },
+                valueRange = 6f..12f, // Min 6x6, Max 12x12
+                steps = 5 // Allows specific stops (7, 8, 9, 10, 11)
+            )
+        }
+
+        // 3. Time Control Checkbox
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = isTimeEnabled,
+                onCheckedChange = { isTimeEnabled = it }
+            )
+            Text(text = "Enable Time Control")
+        }
+
+        // 4. Time Limit Selection (Visible only if time control is enabled)
+        if (isTimeEnabled) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(text = "Time Limit: ${timeLimit.roundToInt()} seconds")
+                Slider(
+                    value = timeLimit,
+                    onValueChange = { timeLimit = it },
+                    valueRange = 30f..120f,
+                    steps = 8
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Start Game Button
+        Button(
+            onClick = {
+                onStartGameClicked(
+                    playerName,
+                    gridSize.roundToInt(),
+                    isTimeEnabled,
+                    timeLimit.roundToInt()
+                )
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Go to Battle!")
+        }
     }
 }

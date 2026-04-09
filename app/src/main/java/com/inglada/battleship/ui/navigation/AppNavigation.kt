@@ -32,9 +32,20 @@ fun AppNavigation() {
 
         // 2. Configuration Route
         composable(route = AppScreens.Configuration.route) {
-            ConfigScreen() // We don't pass navController yet as we just want to see it
+            ConfigScreen(
+                onStartGameClicked = { playerName, gridSize, isTimeEnabled, timeLimit ->
+                    // TODO: Pass these arguments to the GameScreen and navigate
+                    println("Starting game with: $playerName, $gridSize, $isTimeEnabled, $timeLimit")
+                    navController.navigate(AppScreens.Game.route)
+                }
+            )
         }
 
-        // TODO: Add Help, Game, and Results routes in future commits
+        // 3. Game Route (Placeholder for now)
+        composable(route = AppScreens.Game.route) {
+            // GameScreen(...)
+        }
+
+        // TODO: Add Help, and Results routes in future commits
     }
 }
