@@ -29,9 +29,11 @@ fun GameScreen(
     // 1. Observe the board state. Any change here will update the UI
     val board by viewModel.boardState.collectAsState()
 
+    val dynamicTimeLeft by viewModel.timeLeft.collectAsState()
+
     // 2. Initialize the board only once when the screen is first loaded
     LaunchedEffect(Unit) {
-        viewModel.initializeBoard(gridSize)
+        viewModel.initializeBoard(gridSize, isTimeEnabled, timeLimit)
     }
 
     Column(
@@ -51,7 +53,8 @@ fun GameScreen(
 
             // Check requirement: Red if time controlled, Blue if not
             if (isTimeEnabled) {
-                Text(text = "$timeLimit s", style = MaterialTheme.typography.titleLarge, color = Color.Red)
+                // It shows the dynamic time counting down
+                Text(text = "$dynamicTimeLeft s", style = MaterialTheme.typography.titleLarge, color = Color.Red)
             } else {
                 Text(text = "∞", style = MaterialTheme.typography.titleLarge, color = Color.Blue)
             }

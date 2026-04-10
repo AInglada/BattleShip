@@ -1,13 +1,17 @@
 package com.inglada.battleship.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.inglada.battleship.model.Cell
 import com.inglada.battleship.model.CellState
 import com.inglada.battleship.model.Position
 import com.inglada.battleship.model.Ship
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 class GameViewModel : ViewModel() {
@@ -18,19 +22,35 @@ class GameViewModel : ViewModel() {
     // The public immutable state flow that the UI will observe.
     val boardState: StateFlow<List<List<Cell>>> = _boardState.asStateFlow()
 
+    // StateFlow to hold the remaining time
+    private val _timeLeft = MutableStateFlow(0)
+    val timeLeft: StateFlow<Int> = _timeLeft.asStateFlow()
+
+    // StateFlow to hold the game status (isPlaying, won, lost)
+    private val _isGameOver = MutableStateFlow(false)
+    val isGameOver: StateFlow<Boolean> = _isGameOver.asStateFlow()
+
     // Internal list to keep track of all ships to check win conditions later
     private val placedShips = mutableListOf<Ship>()
 
     // Flag to check if the board has already been initialized to avoid resetting it when rotating the screen
     private var isInitialized = false
 
+    private var timerJob: Job? = null // Holds the coroutine job for the timer
+
     /**
      * Initializes the board with water (HIDDEN state).
      * @param size The size of the grid (e.g., 8 for an 8x8 grid).
      */
-    fun initializeBoard(size: Int) {
+    fun initializeBoard(size: Int, isTimeEnabled: Boolean, timeLimit: Int) {
         // We only want to create the board once per game
         if (isInitialized) return
+
+        // Set the initial time
+        if (isTimeEnabled) {
+            _timeLeft.value = timeLimit
+            startTimer() // Start the countdown
+        }
 
         // 1. Create a mutable 2D list for easy modification during setup
         val initialBoard = MutableList(size) { row ->
@@ -98,6 +118,23 @@ class GameViewModel : ViewModel() {
     }
 
     /**
+     * Starts the coroutine timer
+     */
+    private fun startTimer() {
+        timerJob?.cancel() // Cancel any existing timer just in case
+        timerJob = viewModelScope.launch {
+            while (_timeLeft.value > 0 && !_isGameOver.value) {
+                delay(1000L) // Wait for 1 second
+                _timeLeft.value -= 1 // Decrease time
+
+                if (_timeLeft.value == 0) {
+                    endGame(won = false) // Time's up
+                }
+            }
+        }
+    }
+
+    /**
      * Handles a user clicking on a specific cell.
      */
     fun onCellClicked(position: Position) {
@@ -137,8 +174,18 @@ class GameViewModel : ViewModel() {
         }
 
         if (allSunk) {
-            // TODO: Trigger game over, navigate to results screen and generate log!
-            println("GAME OVER - YOU WIN!") // Will see this in the Logcat for now
+            endGame(won = true)
+        }
+    }
+
+    private fun endGame(won: Boolean) {
+        _isGameOver.value = true
+        timerJob?.cancel() // Stop the timer
+
+        if (won) {
+            println("GAME OVER - YOU WIN!")
+        } else {
+            println("GAME OVER - TIME OUT!")
         }
     }
 }
