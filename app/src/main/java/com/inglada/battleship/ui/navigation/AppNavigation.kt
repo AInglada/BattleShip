@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import com.inglada.battleship.ui.screens.ConfigScreen
 import com.inglada.battleship.ui.screens.MainMenuScreen
 import com.inglada.battleship.ui.screens.GameScreen
+import com.inglada.battleship.ui.screens.ResultsScreen
 
 // Defines the unique routes for each screen in the app
 sealed class AppScreens(val route: String) {
@@ -24,7 +25,12 @@ sealed class AppScreens(val route: String) {
         }
     }
 
-    object Results : AppScreens("results_screen")
+    // We pass the essential game data to build the Log in the Results screen
+    object Results : AppScreens("results_screen/{playerName}/{gridSize}/{didWin}/{timeSpent}") {
+        fun createRoute(playerName: String, gridSize: Int, didWin: Boolean, timeSpent: Int): String {
+            return "results_screen/$playerName/$gridSize/$didWin/$timeSpent"
+        }
+    }
 }
 
 @Composable
@@ -67,6 +73,7 @@ fun AppNavigation() {
             val timeLimit = backStackEntry.arguments?.getInt("timeLimit") ?: 0
 
             GameScreen(
+                navController = navController,
                 playerName = playerName,
                 gridSize = gridSize,
                 isTimeEnabled = isTimeEnabled,
@@ -74,6 +81,30 @@ fun AppNavigation() {
             )
         }
 
-        // TODO: Add Help, and Results routes in future commits
+        // 4. Results Route
+        composable(
+            route = AppScreens.Results.route,
+            arguments = listOf(
+                navArgument("playerName") { type = NavType.StringType },
+                navArgument("gridSize") { type = NavType.IntType },
+                navArgument("didWin") { type = NavType.BoolType },
+                navArgument("timeSpent") { type = NavType.IntType }
+            )
+        ) { backStackEntry ->
+            val playerName = backStackEntry.arguments?.getString("playerName") ?: "Unknown"
+            val gridSize = backStackEntry.arguments?.getInt("gridSize") ?: 8
+            val didWin = backStackEntry.arguments?.getBoolean("didWin") ?: false
+            val timeSpent = backStackEntry.arguments?.getInt("timeSpent") ?: 0
+
+            ResultsScreen(
+                navController = navController,
+                playerName = playerName,
+                gridSize = gridSize,
+                didWin = didWin,
+                timeSpent = timeSpent
+            )
+        }
+
+        // TODO: Add Help route in future commits
     }
 }

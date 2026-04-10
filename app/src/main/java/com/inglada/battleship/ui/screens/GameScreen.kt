@@ -15,11 +15,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.inglada.battleship.model.CellState
+import com.inglada.battleship.ui.navigation.AppScreens
 import com.inglada.battleship.viewmodel.GameViewModel
 
 @Composable
 fun GameScreen(
+    navController: NavController,
     playerName: String,
     gridSize: Int,
     isTimeEnabled: Boolean,
@@ -31,9 +34,25 @@ fun GameScreen(
 
     val dynamicTimeLeft by viewModel.timeLeft.collectAsState()
 
+    val isGameOver by viewModel.isGameOver.collectAsState()
+
     // 2. Initialize the board only once when the screen is first loaded
     LaunchedEffect(Unit) {
         viewModel.initializeBoard(gridSize, isTimeEnabled, timeLimit)
+    }
+
+    // 3. Listen for game over state to navigate to the Results screen
+    LaunchedEffect(isGameOver) {
+        if (isGameOver) {
+            // For now, we assume if time is not 0, the player won.
+            val didWin = dynamicTimeLeft > 0 || !isTimeEnabled
+            val timeSpent = if (isTimeEnabled) timeLimit - dynamicTimeLeft else 0
+
+            navController.navigate(AppScreens.Results.createRoute(playerName, gridSize, didWin, timeSpent)) {
+                // Ensure we can't go back to the finished game by pressing the physical back button
+                popUpTo(AppScreens.Game.route) { inclusive = true }
+            }
+        }
     }
 
     Column(
