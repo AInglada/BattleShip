@@ -7,6 +7,7 @@
     <string name="menu_btn_exit">Exit</string>
 
     <string name="config_title">Game Configuration</string>
+    <string name="config_default_player">Admiral</string>
     <string name="config_player_alias">Player Alias</string>
     <string name="config_grid_size">Grid Size: %1$d x %2$d</string>
     <string name="config_enable_time">Enable Time Control</string>
@@ -22,6 +23,8 @@
     <string name="game_time_infinite">∞</string>
 
     <string name="results_title">GAME RESULTS</string>
+    <string name="results_default_email">professora@diei.udl.cat</string>
+    <string name="results_email_chooser">Choose an Email client</string>
     <string name="results_date_time">Date and Time</string>
     <string name="results_log_data">Log Data</string>
     <string name="results_email_recipient">Recipient Email</string>
@@ -32,4 +35,9 @@
     <string name="log_lost">Status: Time\'s Up!</string>
     <string name="log_format">Player Alias: %1$s | Grid Size: %2$d x %3$d\nTotal Time: %4$d seconds.\n%5$s</string>
     <string name="email_subject_format">Log - %1$s</string>
+
+    <string name="game_hud_title">Enemy Fleet Status:</string>
+    <string name="game_hud_sunk">SUNK</string>
+    <string name="game_hud_alive">ALIVE</string>
+    <string name="game_hud_cheatShipPlacement">S</string>
 </resources>

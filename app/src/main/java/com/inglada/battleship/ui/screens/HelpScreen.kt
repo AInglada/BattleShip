@@ -9,10 +9,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.inglada.battleship.ui.navigation.AppScreens
+import com.inglada.battleship.R
 
 @Composable
 fun HelpScreen(navController: NavController) {
@@ -23,7 +25,7 @@ fun HelpScreen(navController: NavController) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "HOW TO PLAY",
+            text = stringResource(id = R.string.help_title),
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(bottom = 24.dp, top = 32.dp)
         )
@@ -35,14 +37,7 @@ fun HelpScreen(navController: NavController) {
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
-                text = "Welcome to BATTLESHIP!\n\n" +
-                        "The goal of the game is to find and sink the entire hidden enemy fleet before the time runs out (if time control is enabled).\n\n" +
-                        "1. The grid hides 5 ships of different sizes (5, 4, 3, 3, and 2 squares).\n" +
-                        "2. Tap any square on the grid to guess.\n" +
-                        "3. A BLUE square means you hit water (MISS).\n" +
-                        "4. A RED square means you hit a ship (HIT).\n" +
-                        "5. Find all parts of all ships to win the game!\n\n" +
-                        "Good luck, Commander!",
+                text = stringResource(id = R.string.help_content),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Justify
             )
@@ -59,7 +54,7 @@ fun HelpScreen(navController: NavController) {
                 .fillMaxWidth()
                 .padding(top = 16.dp)
         ) {
-            Text("Back to Menu")
+            Text(text = stringResource(id = R.string.help_btn_back))
         }
     }
 }

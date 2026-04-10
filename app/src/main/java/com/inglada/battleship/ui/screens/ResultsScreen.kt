@@ -9,8 +9,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.inglada.battleship.ui.navigation.AppScreens
+import com.inglada.battleship.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -31,15 +33,27 @@ fun ResultsScreen(
     }
 
     // Generate the Log String based on the practice requirements
-    val resultMessage = if (didWin) "You won!" else "Time finished!"
-    val initialLog = "Alias: $playerName | Grid Size: $gridSize\n" +
-            "Total time: $timeSpent seconds.\n" +
-            "$resultMessage"
+    val resultMessage = if (didWin) stringResource(id = R.string.log_won) else stringResource(id = R.string.log_lost)
+    val initialLog = stringResource(
+        id = R.string.log_format,
+        playerName, // %1$s
+        gridSize,   // %2$d
+        gridSize,   // %3$d
+        timeSpent,  // %4$d
+        resultMessage // %5$s
+    )
 
     // States for the text fields (so the user can edit them if they want)
     var dateTimeText by remember { mutableStateOf(currentDateTime) }
     var logText by remember { mutableStateOf(initialLog) }
-    var emailText by remember { mutableStateOf("example@example.com") }
+
+    // Read the string resource out here in the Composable scope
+    val defaultEmail = stringResource(id = R.string.results_default_email)
+    // Pass the resolved string into the initial state
+    var emailText by remember { mutableStateOf(defaultEmail) }
+
+    val emailSubject = stringResource(id = R.string.email_subject_format, dateTimeText)
+    val chooserTitle = stringResource(id = R.string.results_email_chooser)
 
     Column(
         modifier = Modifier
@@ -49,7 +63,7 @@ fun ResultsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "GAME RESULTS",
+            text = stringResource(id = R.string.results_title),
             style = MaterialTheme.typography.headlineMedium
         )
 
@@ -57,7 +71,7 @@ fun ResultsScreen(
         OutlinedTextField(
             value = dateTimeText,
             onValueChange = { dateTimeText = it },
-            label = { Text("Date and time") },
+            label = { Text(text = stringResource(id = R.string.results_date_time)) },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -65,7 +79,7 @@ fun ResultsScreen(
         OutlinedTextField(
             value = logText,
             onValueChange = { logText = it },
-            label = { Text("Log Data") },
+            label = { Text(text = stringResource(id = R.string.results_log_data)) },
             modifier = Modifier.fillMaxWidth(),
             minLines = 4
         )
@@ -74,7 +88,7 @@ fun ResultsScreen(
         OutlinedTextField(
             value = emailText,
             onValueChange = { emailText = it },
-            label = { Text("Email receiver") },
+            label = { Text(text = stringResource(id = R.string.results_email_recipient)) },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -82,10 +96,10 @@ fun ResultsScreen(
 
         // Actions
         Button(
-            onClick = { sendEmail(context, emailText, dateTimeText, logText) },
+            onClick = { sendEmail(context, emailText, emailSubject, logText, chooserTitle) },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Send email")
+            Text(stringResource(id = R.string.results_btn_send))
         }
 
         Button(
@@ -97,16 +111,19 @@ fun ResultsScreen(
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("New Game / Exit")
+            Text(text = stringResource(id = R.string.results_btn_new_game))
         }
     }
 }
 
 // Helper function to trigger the Android Email Intent
-private fun sendEmail(context: Context, email: String, dateTime: String, logContent: String) {
-    val subject = "Log - $dateTime"
-
-    // ACTION_SENDTO Intent ensures only email apps handle this
+private fun sendEmail(
+    context: Context,
+    email: String,
+    subject: String,
+    logContent: String,
+    chooserTitle: String
+) {
     val intent = Intent(Intent.ACTION_SENDTO).apply {
         data = Uri.parse("mailto:")
         putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
@@ -114,11 +131,9 @@ private fun sendEmail(context: Context, email: String, dateTime: String, logCont
         putExtra(Intent.EXTRA_TEXT, logContent)
     }
 
-    // Verify that the user has an email app installed before trying to start it
     if (intent.resolveActivity(context.packageManager) != null) {
         context.startActivity(intent)
     } else {
-        // Fallback if no email app is found
-        context.startActivity(Intent.createChooser(intent, "Choose an Email client"))
+        context.startActivity(Intent.createChooser(intent, chooserTitle))
     }
 }

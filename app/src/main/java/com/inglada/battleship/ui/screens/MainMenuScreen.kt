@@ -9,10 +9,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.inglada.battleship.R
 import com.inglada.battleship.ui.navigation.AppScreens
 
 @Composable
@@ -27,7 +29,7 @@ fun MainMenuScreen(navController: NavController) {
     ) {
         // Game Title
         Text(
-            text = "BATTLESHIP",
+            text = stringResource(id = R.string.menu_title),
             fontSize = 40.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
@@ -41,7 +43,7 @@ fun MainMenuScreen(navController: NavController) {
                 .fillMaxWidth(0.6f) // Takes 60% of the screen width
                 .padding(bottom = 16.dp)
         ) {
-            Text(text = "Start Game")
+            Text(text = stringResource(id = R.string.menu_btn_start),)
         }
 
         // Help Button
@@ -51,7 +53,7 @@ fun MainMenuScreen(navController: NavController) {
                 .fillMaxWidth(0.6f)
                 .padding(bottom = 16.dp)
         ) {
-            Text(text = "Help")
+            Text(text = stringResource(id = R.string.menu_btn_help),)
         }
 
         // Exit Button
@@ -59,7 +61,7 @@ fun MainMenuScreen(navController: NavController) {
             onClick = { activity?.finish() },
             modifier = Modifier.fillMaxWidth(0.6f)
         ) {
-            Text(text = "Exit")
+            Text(text = stringResource(id = R.string.menu_btn_exit),)
         }
     }
 }

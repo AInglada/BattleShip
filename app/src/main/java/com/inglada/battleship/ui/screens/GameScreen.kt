@@ -13,12 +13,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.inglada.battleship.model.CellState
 import com.inglada.battleship.ui.navigation.AppScreens
 import com.inglada.battleship.viewmodel.GameViewModel
+import com.inglada.battleship.R
 
 @Composable
 fun GameScreen(
@@ -35,6 +37,8 @@ fun GameScreen(
     val dynamicTimeLeft by viewModel.timeLeft.collectAsState()
 
     val isGameOver by viewModel.isGameOver.collectAsState()
+
+    val fleetStatus by viewModel.fleetStatus.collectAsState()
 
     // 2. Initialize the board only once when the screen is first loaded
     LaunchedEffect(Unit) {
@@ -68,14 +72,25 @@ fun GameScreen(
                 .padding(bottom = 24.dp, top = 32.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(text = "Cmdr: $playerName", style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = stringResource(id = R.string.game_cmdr, playerName),
+                style = MaterialTheme.typography.titleLarge
+            )
 
             // Check requirement: Red if time controlled, Blue if not
             if (isTimeEnabled) {
                 // It shows the dynamic time counting down
-                Text(text = "$dynamicTimeLeft s", style = MaterialTheme.typography.titleLarge, color = Color.Red)
+                Text(
+                    text = stringResource(id = R.string.game_time_seconds, dynamicTimeLeft),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.Red
+                )
             } else {
-                Text(text = "∞", style = MaterialTheme.typography.titleLarge, color = Color.Blue)
+                Text(
+                    text = stringResource(id = R.string.game_time_infinite),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.Blue
+                )
             }
         }
 
@@ -111,7 +126,7 @@ fun GameScreen(
                             /*
                             if (cell.hasShip) {
                                 Text(
-                                    text = "S",
+                                    text = stringResource(id = R.string.game_hud_cheatShipPlacement),
                                     modifier = Modifier.align(Alignment.Center),
                                     color = Color.Black
                                 )
@@ -119,6 +134,42 @@ fun GameScreen(
                             */
                         }
                     }
+                }
+            }
+        }
+        // --- Fleet Status HUD ---
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = stringResource(id = R.string.game_hud_title),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        // Draw the ships
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            fleetStatus.forEach { (shipSize, isSunk) ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Draw mini squares for each part of the ship
+                    Row(modifier = Modifier.padding(bottom = 4.dp)) {
+                        repeat(shipSize) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .padding(1.dp)
+                                    .background(if (isSunk) Color.Red else Color.DarkGray)
+                            )
+                        }
+                    }
+                    // Status text
+                    Text(
+                        text = if (isSunk) stringResource(id = R.string.game_hud_sunk) else stringResource(id = R.string.game_hud_alive),
+                        color = if (isSunk) Color.Red else Color.Green,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
         }

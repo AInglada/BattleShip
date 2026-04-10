@@ -6,7 +6,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import kotlin.math.roundToInt
+import com.inglada.battleship.R
 
 @Composable
 fun ConfigScreen(
@@ -14,7 +16,10 @@ fun ConfigScreen(
     onStartGameClicked: (playerName: String, gridSize: Int, isTimeEnabled: Boolean, timeLimit: Int) -> Unit
 ) {
     // UI States using 'remember' to survive recompositions
-    var playerName by remember { mutableStateOf("Admiral") }
+    // Read the default name from resources outside the remember block
+    val defaultPlayerName = stringResource(id = R.string.config_default_player)
+    // Use it as the initial state
+    var playerName by remember { mutableStateOf(defaultPlayerName) }
     var gridSize by remember { mutableFloatStateOf(8f) } // 8x8 by default
     var isTimeEnabled by remember { mutableStateOf(false) }
     var timeLimit by remember { mutableFloatStateOf(60f) } // 60 seconds by default
@@ -27,7 +32,7 @@ fun ConfigScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp) // Adds space between elements
     ) {
         Text(
-            text = "Game Configuration",
+            text = stringResource(id = R.string.config_title),
             style = MaterialTheme.typography.headlineMedium
         )
 
@@ -37,14 +42,20 @@ fun ConfigScreen(
         OutlinedTextField(
             value = playerName,
             onValueChange = { playerName = it },
-            label = { Text("Player Alias") },
+            label = { Text(stringResource(id = R.string.config_player_alias)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
 
         // 2. Grid Size Selection
         Column(modifier = Modifier.fillMaxWidth()) {
-            Text(text = "Grid Size: ${gridSize.roundToInt()} x ${gridSize.roundToInt()}")
+            Text(
+                text = stringResource(
+                    id = R.string.config_grid_size,
+                    gridSize.roundToInt(),
+                    gridSize.roundToInt()
+                )
+            )
             Slider(
                 value = gridSize,
                 onValueChange = { gridSize = it },
@@ -62,13 +73,18 @@ fun ConfigScreen(
                 checked = isTimeEnabled,
                 onCheckedChange = { isTimeEnabled = it }
             )
-            Text(text = "Enable Time Control")
+            Text(text = stringResource(id = R.string.config_enable_time))
         }
 
         // 4. Time Limit Selection (Visible only if time control is enabled)
         if (isTimeEnabled) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                Text(text = "Time Limit: ${timeLimit.roundToInt()} seconds")
+                Text(
+                    text = stringResource(
+                        id = R.string.config_time_limit,
+                        timeLimit.roundToInt()
+                    )
+                )
                 Slider(
                     value = timeLimit,
                     onValueChange = { timeLimit = it },
@@ -92,7 +108,7 @@ fun ConfigScreen(
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Go to Battle!")
+            Text(stringResource(id = R.string.config_btn_start))
         }
     }
 }

@@ -30,6 +30,11 @@ class GameViewModel : ViewModel() {
     private val _isGameOver = MutableStateFlow(false)
     val isGameOver: StateFlow<Boolean> = _isGameOver.asStateFlow()
 
+    // StateFlow to hold the status of the fleet.
+    // Pair<Int, Boolean> represents <ShipSize, IsSunk>
+    private val _fleetStatus = MutableStateFlow<List<Pair<Int, Boolean>>>(emptyList())
+    val fleetStatus: StateFlow<List<Pair<Int, Boolean>>> = _fleetStatus.asStateFlow()
+
     // Internal list to keep track of all ships to check win conditions later
     private val placedShips = mutableListOf<Ship>()
 
@@ -71,6 +76,9 @@ class GameViewModel : ViewModel() {
         // 4. Expose the immutable board to the UI
         _boardState.value = initialBoard
         isInitialized = true
+
+        // Initialize fleet status
+        updateFleetStatus(initialBoard)
     }
 
     /**
@@ -170,6 +178,9 @@ class GameViewModel : ViewModel() {
         // Emit the new board state
         _boardState.value = newBoard
 
+        // Update the HUD when a cell is clicked
+        updateFleetStatus(newBoard)
+
         // Check if this move won the game
         checkWinCondition(newBoard)
     }
@@ -196,5 +207,14 @@ class GameViewModel : ViewModel() {
         } else {
             println("GAME OVER - TIME OUT!")
         }
+    }
+
+    /**
+     * Updates the UI state of the fleet (which ships are alive or sunk)
+     */
+    private fun updateFleetStatus(board: List<List<Cell>>) {
+        _fleetStatus.value = placedShips.map { ship ->
+            Pair(ship.size, ship.isSunk(board))
+        }.sortedByDescending { it.first } // Sort from largest to smallest ship
     }
 }
