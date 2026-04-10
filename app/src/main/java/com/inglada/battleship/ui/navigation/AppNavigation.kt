@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import com.inglada.battleship.ui.screens.ConfigScreen
 import com.inglada.battleship.ui.screens.MainMenuScreen
 import com.inglada.battleship.ui.screens.GameScreen
+import com.inglada.battleship.ui.screens.HelpScreen
 import com.inglada.battleship.ui.screens.ResultsScreen
 
 // Defines the unique routes for each screen in the app
@@ -105,6 +106,9 @@ fun AppNavigation() {
             )
         }
 
-        // TODO: Add Help route in future commits
+        // 5. Help Route
+        composable(route = AppScreens.Help.route) {
+            HelpScreen(navController = navController)
+        }
     }
 }
