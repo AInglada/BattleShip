@@ -51,7 +51,6 @@ fun HelpScreen(navController: NavController) {
         // Return Button
         Button(
             onClick = {
-                // Requirement: The Help screen returns to the main menu
                 navController.navigate(AppScreens.MainMenu.route) {
                     popUpTo(AppScreens.MainMenu.route) { inclusive = true }
                 }

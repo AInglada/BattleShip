@@ -78,39 +78,48 @@ class GameViewModel : ViewModel() {
      */
     private fun placeShipRandomly(shipSize: Int, boardSize: Int, board: MutableList<MutableList<Cell>>) {
         var isPlaced = false
+        val maxAttempts = 100 // Prevent infinite loops if the board is too crowded
+        var attempts = 0
 
-        while (!isPlaced) {
+        while (!isPlaced && attempts < maxAttempts) {
+            attempts++
             val isHorizontal = Random.nextBoolean()
             val startRow = Random.nextInt(boardSize)
             val startCol = Random.nextInt(boardSize)
 
-            // Check if the ship fits within the board boundaries
+            // Check boundaries
             if (isHorizontal && startCol + shipSize > boardSize) continue
             if (!isHorizontal && startRow + shipSize > boardSize) continue
 
-            // Check for overlaps with already placed ships
-            var hasOverlap = false
+            var isValidPlacement = true
             val shipPositions = mutableListOf<Position>()
 
             for (i in 0 until shipSize) {
                 val row = if (isHorizontal) startRow else startRow + i
                 val col = if (isHorizontal) startCol + i else startCol
 
-                if (board[row][col].hasShip) {
-                    hasOverlap = true
-                    break
+                // Check surrounding cells (including diagonals)
+                // We check from row-1 to row+1, and col-1 to col+1
+                for (r in (row - 1)..(row + 1)) {
+                    for (c in (col - 1)..(col + 1)) {
+                        // Ensure we don't go out of bounds while checking surroundings
+                        if (r in 0 until boardSize && c in 0 until boardSize) {
+                            if (board[r][c].hasShip) {
+                                isValidPlacement = false
+                            }
+                        }
+                    }
                 }
+
+                if (!isValidPlacement) break // Break early if we found a conflict
                 shipPositions.add(Position(row, col))
             }
 
-            // If it fits and there's no overlap, place the ship
-            if (!hasOverlap) {
+            // If it fits and has water all around it, place it
+            if (isValidPlacement) {
                 shipPositions.forEach { pos ->
-                    // Copy the cell with 'hasShip = true'
                     board[pos.row][pos.col] = board[pos.row][pos.col].copy(hasShip = true)
                 }
-
-                // Save the ship to our internal list
                 placedShips.add(Ship(shipSize, shipPositions))
                 isPlaced = true
             }

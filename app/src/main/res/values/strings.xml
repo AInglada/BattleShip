@@ -1,3 +1,35 @@
 <resources>
-    <string name="app_name">BattleShip</string>
+    <string name="app_name">Battleship</string>
+
+    <string name="menu_title">BATTLESHIP</string>
+    <string name="menu_btn_start">Start Game</string>
+    <string name="menu_btn_help">Help</string>
+    <string name="menu_btn_exit">Exit</string>
+
+    <string name="config_title">Game Configuration</string>
+    <string name="config_player_alias">Player Alias</string>
+    <string name="config_grid_size">Grid Size: %1$d x %2$d</string>
+    <string name="config_enable_time">Enable Time Control</string>
+    <string name="config_time_limit">Time Limit: %1$d seconds</string>
+    <string name="config_btn_start">Go to Battle!</string>
+
+    <string name="help_title">HOW TO PLAY</string>
+    <string name="help_content">Welcome to BATTLESHIP!\n\nThe goal of the game is to find and sink the entire hidden enemy fleet before the time runs out (if time control is enabled).\n\n1. The grid hides 5 ships of different sizes (5, 4, 3, 3, and 2 squares).\n2. Tap any square on the grid to guess.\n3. A BLUE square means you hit water (MISS).\n4. A RED square means you hit a ship (HIT).\n5. Find all parts of all ships to win the game!\n\nGood luck, Commander!</string>
+    <string name="help_btn_back">Back to Menu</string>
+
+    <string name="game_cmdr">Cmdr: %1$s</string>
+    <string name="game_time_seconds">%1$d s</string>
+    <string name="game_time_infinite">∞</string>
+
+    <string name="results_title">GAME RESULTS</string>
+    <string name="results_date_time">Date and Time</string>
+    <string name="results_log_data">Log Data</string>
+    <string name="results_email_recipient">Recipient Email</string>
+    <string name="results_btn_send">Send Email</string>
+    <string name="results_btn_new_game">New Game / Exit</string>
+
+    <string name="log_won">Status: You Won!</string>
+    <string name="log_lost">Status: Time\'s Up!</string>
+    <string name="log_format">Player Alias: %1$s | Grid Size: %2$d x %3$d\nTotal Time: %4$d seconds.\n%5$s</string>
+    <string name="email_subject_format">Log - %1$s</string>
 </resources>
