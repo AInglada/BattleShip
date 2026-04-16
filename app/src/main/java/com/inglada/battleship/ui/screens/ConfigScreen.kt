@@ -1,8 +1,11 @@
 package com.inglada.battleship.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -12,22 +15,23 @@ import com.inglada.battleship.R
 
 @Composable
 fun ConfigScreen(
-    // We will use this callback later to navigate to the Game screen passing the selected data
+    // Callback to navigate to the Game screen passing the selected data
     onStartGameClicked: (playerName: String, gridSize: Int, isTimeEnabled: Boolean, timeLimit: Int) -> Unit
 ) {
     // UI States using 'remember' to survive recompositions
     // Read the default name from resources outside the remember block
     val defaultPlayerName = stringResource(id = R.string.config_default_player)
     // Use it as the initial state
-    var playerName by remember { mutableStateOf(defaultPlayerName) }
-    var gridSize by remember { mutableFloatStateOf(8f) } // 8x8 by default
-    var isTimeEnabled by remember { mutableStateOf(false) }
-    var timeLimit by remember { mutableFloatStateOf(60f) } // 60 seconds by default
+    var playerName by rememberSaveable { mutableStateOf(defaultPlayerName) }
+    var gridSize by rememberSaveable { mutableFloatStateOf(8f) } // 8x8 by default
+    var isTimeEnabled by rememberSaveable { mutableStateOf(false) }
+    var timeLimit by rememberSaveable { mutableFloatStateOf(60f) } // 60 seconds by default
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp) // Adds space between elements
     ) {
@@ -94,7 +98,7 @@ fun ConfigScreen(
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Start Game Button
         Button(

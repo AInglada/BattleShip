@@ -4,8 +4,11 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -32,7 +35,7 @@ fun ResultsScreen(
         SimpleDateFormat("MMM dd, yyyy h:mm:ss a", Locale.getDefault()).format(Date())
     }
 
-    // Generate the Log String based on the practice requirements
+    // Generate the Log String
     val resultMessage = if (didWin) stringResource(id = R.string.log_won) else stringResource(id = R.string.log_lost)
     val initialLog = stringResource(
         id = R.string.log_format,
@@ -44,13 +47,13 @@ fun ResultsScreen(
     )
 
     // States for the text fields (so the user can edit them if they want)
-    var dateTimeText by remember { mutableStateOf(currentDateTime) }
-    var logText by remember { mutableStateOf(initialLog) }
+    var dateTimeText by rememberSaveable { mutableStateOf(currentDateTime) }
+    var logText by rememberSaveable { mutableStateOf(initialLog) }
 
     // Read the string resource out here in the Composable scope
     val defaultEmail = stringResource(id = R.string.results_default_email)
     // Pass the resolved string into the initial state
-    var emailText by remember { mutableStateOf(defaultEmail) }
+    var emailText by rememberSaveable { mutableStateOf(defaultEmail) }
 
     val emailSubject = stringResource(id = R.string.email_subject_format, dateTimeText)
     val chooserTitle = stringResource(id = R.string.results_email_chooser)
@@ -58,7 +61,8 @@ fun ResultsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -92,7 +96,7 @@ fun ResultsScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Actions
         Button(

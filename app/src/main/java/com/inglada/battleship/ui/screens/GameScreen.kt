@@ -1,9 +1,12 @@
 package com.inglada.battleship.ui.screens
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -33,11 +37,8 @@ fun GameScreen(
 ) {
     // 1. Observe the board state. Any change here will update the UI
     val board by viewModel.boardState.collectAsState()
-
     val dynamicTimeLeft by viewModel.timeLeft.collectAsState()
-
     val isGameOver by viewModel.isGameOver.collectAsState()
-
     val fleetStatus by viewModel.fleetStatus.collectAsState()
 
     // 2. Initialize the board only once when the screen is first loaded
@@ -59,17 +60,18 @@ fun GameScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Header (Player info and Time control as per requirements)
+    // Detect Orientation
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    // Extracting UI Components into reusable blocks
+
+    val headerContent = @Composable {
+        // Header (Player info and Time control)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp, top = 32.dp),
+                .padding(bottom = 24.dp, top = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
@@ -93,7 +95,9 @@ fun GameScreen(
                 )
             }
         }
+    }
 
+    val gridContent = @Composable {
         // The Game Grid
         Column(
             modifier = Modifier
@@ -137,6 +141,9 @@ fun GameScreen(
                 }
             }
         }
+    }
+
+    val fleetStatusContent = @Composable {
         // --- Fleet Status HUD ---
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -172,6 +179,48 @@ fun GameScreen(
                     )
                 }
             }
+        }
+    }
+
+    // --- Adaptive Layout Logic based on Orientation ---
+    if (isLandscape) {
+        // Landscape Layout: Grid on the left, Information on the right
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left Side: The Game Grid
+            Box(modifier = Modifier.weight(1f)) {
+                gridContent()
+            }
+
+            // Right Side: Header and Fleet Status (with scroll to prevent cutting)
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .padding(start = 16.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                headerContent()
+                fleetStatusContent()
+            }
+        }
+    } else {
+        // Portrait Layout: Original sequential layout (Header -> Grid -> HUD)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            headerContent()
+            gridContent()
+            fleetStatusContent()
         }
     }
 }
