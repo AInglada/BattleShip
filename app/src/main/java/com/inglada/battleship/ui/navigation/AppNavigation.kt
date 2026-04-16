@@ -19,10 +19,10 @@ sealed class AppScreens(val route: String) {
     object Configuration : AppScreens("configuration_screen")
 
     // The Game route now expects 4 variables in its URL path
-    object Game : AppScreens("game_screen/{playerName}/{gridSize}/{isTimeEnabled}/{timeLimit}") {
+    object Game : AppScreens("game_screen/{playerName}/{gridSize}/{isTimeEnabled}/{timeLimit}/{isHardMode}") {
         // Helper function to build the final navigation string
-        fun createRoute(playerName: String, gridSize: Int, isTimeEnabled: Boolean, timeLimit: Int): String {
-            return "game_screen/$playerName/$gridSize/$isTimeEnabled/$timeLimit"
+        fun createRoute(playerName: String, gridSize: Int, isTimeEnabled: Boolean, timeLimit: Int, isHardMode: Boolean): String {
+            return "game_screen/$playerName/$gridSize/$isTimeEnabled/$timeLimit/$isHardMode"
         }
     }
 
@@ -51,8 +51,8 @@ fun AppNavigation() {
         // 2. Configuration Route
         composable(route = AppScreens.Configuration.route) {
             ConfigScreen(
-                onStartGameClicked = { playerName, gridSize, isTimeEnabled, timeLimit ->
-                    navController.navigate(AppScreens.Game.createRoute(playerName, gridSize, isTimeEnabled, timeLimit))
+                onStartGameClicked = { playerName, gridSize, isTimeEnabled, timeLimit, isHardMode ->
+                    navController.navigate(AppScreens.Game.createRoute(playerName, gridSize, isTimeEnabled, timeLimit, isHardMode))
                 }
             )
         }
@@ -64,7 +64,8 @@ fun AppNavigation() {
                 navArgument("playerName") { type = NavType.StringType },
                 navArgument("gridSize") { type = NavType.IntType },
                 navArgument("isTimeEnabled") { type = NavType.BoolType },
-                navArgument("timeLimit") { type = NavType.IntType }
+                navArgument("timeLimit") { type = NavType.IntType },
+                navArgument("isHardMode") { type = NavType.BoolType }
             )
         ) { backStackEntry ->
             // Extract the arguments
@@ -72,13 +73,15 @@ fun AppNavigation() {
             val gridSize = backStackEntry.arguments?.getInt("gridSize") ?: 8
             val isTimeEnabled = backStackEntry.arguments?.getBoolean("isTimeEnabled") ?: false
             val timeLimit = backStackEntry.arguments?.getInt("timeLimit") ?: 0
+            val isHardMode = backStackEntry.arguments?.getBoolean("isHardMode") ?: false
 
             GameScreen(
                 navController = navController,
                 playerName = playerName,
                 gridSize = gridSize,
                 isTimeEnabled = isTimeEnabled,
-                timeLimit = timeLimit
+                timeLimit = timeLimit,
+                isHardMode = isHardMode
             )
         }
 

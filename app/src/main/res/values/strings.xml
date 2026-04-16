@@ -13,6 +13,9 @@
     <string name="config_enable_time">Enable Time Control</string>
     <string name="config_time_limit">Time Limit: %1$d seconds</string>
     <string name="config_btn_start">Go to Battle!</string>
+    <string name="config_ai_difficulty">AI Difficulty: %1$s</string>
+    <string name="config_ai_easy">Easy (Random)</string>
+    <string name="config_ai_hard">Hard (Tactical)</string>
 
     <string name="help_title">HOW TO PLAY</string>
     <string name="help_content">Welcome to BATTLESHIP!\n\nThe goal of the game is to find and sink the entire hidden enemy fleet before the time runs out (if time control is enabled).\n\n1. The grid hides 5 ships of different sizes (5, 4, 3, 3, and 2 squares).\n2. Tap any square on the grid to guess.\n3. A BLUE square means you hit water (MISS).\n4. A RED square means you hit a ship (HIT).\n5. Find all parts of all ships to win the game!\n\nGood luck, Commander!</string>

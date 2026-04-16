@@ -16,7 +16,7 @@ import com.inglada.battleship.R
 @Composable
 fun ConfigScreen(
     // Callback to navigate to the Game screen passing the selected data
-    onStartGameClicked: (playerName: String, gridSize: Int, isTimeEnabled: Boolean, timeLimit: Int) -> Unit
+    onStartGameClicked: (playerName: String, gridSize: Int, isTimeEnabled: Boolean, timeLimit: Int, isHardMode: Boolean) -> Unit
 ) {
     // UI States using 'remember' to survive recompositions
     // Read the default name from resources outside the remember block
@@ -26,6 +26,7 @@ fun ConfigScreen(
     var gridSize by rememberSaveable { mutableFloatStateOf(8f) } // 8x8 by default
     var isTimeEnabled by rememberSaveable { mutableStateOf(false) }
     var timeLimit by rememberSaveable { mutableFloatStateOf(60f) } // 60 seconds by default
+    var isHardMode by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -100,6 +101,28 @@ fun ConfigScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // 5. AI Difficulty Selector
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            val difficultyText = if (isHardMode) {
+                stringResource(id = R.string.config_ai_hard)
+            } else {
+                stringResource(id = R.string.config_ai_easy)
+            }
+
+            Text(text = stringResource(id = R.string.config_ai_difficulty, difficultyText))
+
+            Switch(
+                checked = isHardMode,
+                onCheckedChange = { isHardMode = it }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // Start Game Button
         Button(
             onClick = {
@@ -107,7 +130,8 @@ fun ConfigScreen(
                     playerName,
                     gridSize.roundToInt(),
                     isTimeEnabled,
-                    timeLimit.roundToInt()
+                    timeLimit.roundToInt(),
+                    isHardMode
                 )
             },
             modifier = Modifier.fillMaxWidth()

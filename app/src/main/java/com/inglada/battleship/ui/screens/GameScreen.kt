@@ -35,6 +35,7 @@ fun GameScreen(
     gridSize: Int,
     isTimeEnabled: Boolean,
     timeLimit: Int,
+    isHardMode: Boolean,
     viewModel: GameViewModel = viewModel() // Instantiates the ViewModel automatically
 ) {
     // 1. Observe the board state. Any change here will update the UI
