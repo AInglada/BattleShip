@@ -33,6 +33,10 @@
     <string name="game_orientation_h">Horizontal</string>
     <string name="game_orientation_v">Vertical</string>
     <string name="game_btn_reset">Reset Placement</string>
+    <string name="game_turn_player">COMMANDER, IT\'S YOUR TURN!</string>
+    <string name="game_turn_enemy">ENEMY IS AROUND... THINKING</string>
+    <string name="game_board_yours">Your Fleet</string>
+    <string name="game_board_enemy">Enemy Waters</string>
 
     <string name="results_title">GAME RESULTS</string>
     <string name="results_default_email">professora@diei.udl.cat</string>

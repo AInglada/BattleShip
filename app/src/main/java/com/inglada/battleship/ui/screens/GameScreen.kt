@@ -19,9 +19,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.inglada.battleship.model.Cell
 import com.inglada.battleship.model.CellState
 import com.inglada.battleship.ui.navigation.AppScreens
 import com.inglada.battleship.viewmodel.GamePhase
@@ -36,28 +38,32 @@ fun GameScreen(
     isTimeEnabled: Boolean,
     timeLimit: Int,
     isHardMode: Boolean,
-    viewModel: GameViewModel = viewModel() // Instantiates the ViewModel automatically
+    viewModel: GameViewModel = viewModel()
 ) {
-    // 1. Observe the board state. Any change here will update the UI
-    val board by viewModel.boardState.collectAsState()
+    // 1. Observe all the states from our updated ViewModel
+    val playerBoard by viewModel.playerBoardState.collectAsState()
+    val enemyBoard by viewModel.enemyBoardState.collectAsState()
+
     val dynamicTimeLeft by viewModel.timeLeft.collectAsState()
     val isGameOver by viewModel.isGameOver.collectAsState()
-    val fleetStatus by viewModel.fleetStatus.collectAsState()
-
-    // Observe manual placement states
     val gamePhase by viewModel.gamePhase.collectAsState()
+
+    val isPlayerTurn by viewModel.isPlayerTurn.collectAsState()
+    val enemyFleetStatus by viewModel.enemyFleetStatus.collectAsState()
+
     val currentShipSize by viewModel.currentShipSizeToPlace.collectAsState()
     val isHorizontal by viewModel.isHorizontal.collectAsState()
 
-    // 2. Initialize the board only once when the screen is first loaded
+    // 2. Initialize passing the new hardMode variable
     LaunchedEffect(Unit) {
-        viewModel.initializeBoard(gridSize, isTimeEnabled, timeLimit)
+        viewModel.initializeBoard(gridSize, isTimeEnabled, timeLimit, isHardMode)
     }
 
-    // 3. Listen for game over state to navigate to the Results screen
+    // 3. Navigation on Game Over
     LaunchedEffect(isGameOver) {
         if (isGameOver) {
-            val didWin = dynamicTimeLeft > 0 || !isTimeEnabled
+            // We win if the enemy fleet is completely sunk
+            val didWin = enemyFleetStatus.isNotEmpty() && enemyFleetStatus.all { it.second }
             val timeSpent = if (isTimeEnabled) timeLimit - dynamicTimeLeft else 0
 
             navController.navigate(AppScreens.Results.createRoute(playerName, gridSize, didWin, timeSpent)) {
@@ -66,26 +72,19 @@ fun GameScreen(
         }
     }
 
-    // Detect Orientation
-    val configuration = LocalConfiguration.current
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-
-    // Extracting UI Components into reusable blocks
+    // --- REUSABLE UI COMPONENTS ---
 
     val headerContent = @Composable {
-        // Header (Player info and Time control)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp, top = 16.dp),
+                .padding(bottom = 16.dp, top = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 text = stringResource(id = R.string.game_cmdr, playerName),
                 style = MaterialTheme.typography.titleLarge
             )
-
-            // Check requirement: Red if time controlled, Blue if not
             if (isTimeEnabled) {
                 Text(
                     text = stringResource(id = R.string.game_time_seconds, dynamicTimeLeft),
@@ -102,106 +101,48 @@ fun GameScreen(
         }
     }
 
-    val gridContent = @Composable {
-        // The Game Grid
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f) // Ensures the grid is always a perfect square
-        ) {
-            board.forEach { row ->
-                Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    row.forEach { cell ->
-                        Box(
-                            modifier = Modifier
-                                .weight(1f) // Distributes width equally
-                                .fillMaxHeight() // Distributes height equally
-                                .padding(2.dp)
-                                .border(1.dp, Color.DarkGray)
-                                .background(
-                                    when (cell.state) {
-                                        // Show ship in dark gray during SETUP phase, otherwise hide it
-                                        CellState.HIDDEN -> if (gamePhase == GamePhase.SETUP && cell.hasShip) Color.DarkGray else Color.LightGray
-                                        CellState.MISS -> Color.Cyan
-                                        CellState.HIT -> Color.Red
-                                    }
-                                )
-                                .clickable {
-                                    // Let the ViewModel handle the click
-                                    viewModel.onCellClicked(cell.position)
+    // A reusable board drawer that we can use for both the Player and the Enemy
+    val drawBoard = @Composable { board: List<List<Cell>>, isEnemy: Boolean, title: String ->
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(bottom = 16.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+            ) {
+                board.forEach { row ->
+                    Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        row.forEach { cell ->
+                            // Determine the visual color depending on whose board it is
+                            val cellColor = when (cell.state) {
+                                CellState.HIDDEN -> {
+                                    // The player can see their own ships, but not the enemy's
+                                    if (!isEnemy && cell.hasShip) Color.DarkGray else Color.LightGray
                                 }
-                        ) {
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    val bottomContent = @Composable {
-        // Dynamic Bottom Content based on Game Phase
-        Spacer(modifier = Modifier.height(24.dp))
-
-        if (gamePhase == GamePhase.SETUP) {
-            // SETUP UI: Show instructions and buttons
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = stringResource(id = R.string.game_phase_setup, currentShipSize),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                // Put buttons in a Row so they are side-by-side
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Button(onClick = { viewModel.toggleOrientation() }) {
-                        val orientationStr = if (isHorizontal) {
-                            stringResource(id = R.string.game_orientation_h)
-                        } else {
-                            stringResource(id = R.string.game_orientation_v)
-                        }
-                        Text(text = stringResource(id = R.string.game_btn_rotate, orientationStr))
-                    }
-
-                    // Reset Button
-                    Button(onClick = { viewModel.resetPlacement(gridSize) }) {
-                        Text(text = stringResource(id = R.string.game_btn_reset))
-                    }
-                }
-            }
-        } else {
-            // PLAYING UI: Show Fleet Status HUD
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = stringResource(id = R.string.game_hud_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                // Draw the ships
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    fleetStatus.forEach { (shipSize, isSunk) ->
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            // Draw mini squares for each part of the ship
-                            Row(modifier = Modifier.padding(bottom = 4.dp)) {
-                                repeat(shipSize) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(12.dp)
-                                            .padding(1.dp)
-                                            .background(if (isSunk) Color.Red else Color.DarkGray)
-                                    )
-                                }
+                                CellState.MISS -> Color.Cyan
+                                CellState.HIT -> Color.Red
                             }
-                            // Status text
-                            Text(
-                                text = if (isSunk) stringResource(id = R.string.game_hud_sunk) else stringResource(id = R.string.game_hud_alive),
-                                color = if (isSunk) Color.Red else Color.Green,
-                                style = MaterialTheme.typography.bodySmall
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .padding(2.dp)
+                                    .border(1.dp, Color.DarkGray)
+                                    .background(cellColor)
+                                    .clickable {
+                                        // Restrict clicks: Setup only on Player board, Playing only on Enemy board
+                                        if (gamePhase == GamePhase.SETUP && !isEnemy) {
+                                            viewModel.onCellClicked(cell.position)
+                                        } else if (gamePhase == GamePhase.PLAYING && isEnemy && isPlayerTurn) {
+                                            viewModel.onCellClicked(cell.position)
+                                        }
+                                    }
                             )
                         }
                     }
@@ -210,43 +151,130 @@ fun GameScreen(
         }
     }
 
-    // Adaptive Layout Logic based on Orientation
-    if (isLandscape) {
-        // Landscape Layout: Grid on the left, Information on the right
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(modifier = Modifier.weight(1f)) {
-                gridContent()
-            }
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .padding(start = 16.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                headerContent()
-                bottomContent()
+    val setupControls = @Composable {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = stringResource(id = R.string.game_phase_setup, currentShipSize),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Button(onClick = { viewModel.toggleOrientation() }) {
+                    val orientationStr = stringResource(id = if (isHorizontal) R.string.game_orientation_h else R.string.game_orientation_v)
+                    Text(text = stringResource(id = R.string.game_btn_rotate, orientationStr))
+                }
+                Button(onClick = { viewModel.resetPlacement(gridSize) }) {
+                    Text(text = stringResource(id = R.string.game_btn_reset))
+                }
             }
         }
-    } else {
-        // Portrait Layout: Original sequential layout (Header -> Grid -> BottomContent)
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            headerContent()
-            gridContent()
-            bottomContent()
+    }
+
+    val hudAndTurnContent = @Composable {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+            // Turn Indicator
+            val turnText = if (isPlayerTurn) R.string.game_turn_player else R.string.game_turn_enemy
+            val turnColor = if (isPlayerTurn) Color.Green else Color.Red
+
+            Text(
+                text = stringResource(id = turnText),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = turnColor,
+                modifier = Modifier.padding(bottom = 16.dp, top = 8.dp)
+            )
+
+            // Fleet HUD
+            Text(
+                text = stringResource(id = R.string.game_hud_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                enemyFleetStatus.forEach { (shipSize, isSunk) ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row(modifier = Modifier.padding(bottom = 4.dp)) {
+                            repeat(shipSize) {
+                                Box(
+                                    modifier = Modifier.size(12.dp).padding(1.dp).background(if (isSunk) Color.Red else Color.DarkGray)
+                                )
+                            }
+                        }
+                        Text(
+                            text = stringResource(id = if (isSunk) R.string.game_hud_sunk else R.string.game_hud_alive),
+                            color = if (isSunk) Color.Red else Color.Green,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // --- MAIN LAYOUT ---
+
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    // We use a scrollable surface so small screens don't cut the double board layout
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (isLandscape) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Left Side: The active board
+                Box(modifier = Modifier.weight(1f)) {
+                    if (gamePhase == GamePhase.SETUP) {
+                        drawBoard(playerBoard, false, stringResource(id = R.string.game_board_yours))
+                    } else {
+                        drawBoard(enemyBoard, true, stringResource(id = R.string.game_board_enemy))
+                    }
+                }
+
+                // Right Side: Info and inactive board
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(start = 16.dp)
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    headerContent()
+                    if (gamePhase == GamePhase.SETUP) {
+                        setupControls()
+                    } else {
+                        hudAndTurnContent()
+                        drawBoard(playerBoard, false, stringResource(id = R.string.game_board_yours))
+                    }
+                }
+            }
+        } else {
+            // Portrait Layout
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                headerContent()
+
+                if (gamePhase == GamePhase.SETUP) {
+                    drawBoard(playerBoard, false, stringResource(id = R.string.game_board_yours))
+                    setupControls()
+                } else {
+                    hudAndTurnContent()
+                    drawBoard(enemyBoard, true, stringResource(id = R.string.game_board_enemy))
+                    drawBoard(playerBoard, false, stringResource(id = R.string.game_board_yours))
+                }
+            }
         }
     }
 }
