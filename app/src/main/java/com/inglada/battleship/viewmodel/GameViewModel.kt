@@ -14,6 +14,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
+enum class GamePhase {
+    SETUP, PLAYING, GAME_OVER
+}
+
 class GameViewModel : ViewModel() {
 
     // The internal mutable state flow that holds the 2D grid of cells.
@@ -26,6 +30,10 @@ class GameViewModel : ViewModel() {
     private val _timeLeft = MutableStateFlow(0)
     val timeLeft: StateFlow<Int> = _timeLeft.asStateFlow()
 
+    // We track the specific phase
+    private val _gamePhase = MutableStateFlow(GamePhase.SETUP)
+    val gamePhase: StateFlow<GamePhase> = _gamePhase.asStateFlow()
+
     // StateFlow to hold the game status (isPlaying, won, lost)
     private val _isGameOver = MutableStateFlow(false)
     val isGameOver: StateFlow<Boolean> = _isGameOver.asStateFlow()
@@ -35,6 +43,19 @@ class GameViewModel : ViewModel() {
     private val _fleetStatus = MutableStateFlow<List<Pair<Int, Boolean>>>(emptyList())
     val fleetStatus: StateFlow<List<Pair<Int, Boolean>>> = _fleetStatus.asStateFlow()
 
+    // --- MANUAL PLACEMENT STATES ---
+    private val shipsToPlaceSizes = listOf(5, 4, 3, 3, 2)
+
+    private val _currentShipIndex = MutableStateFlow(0)
+
+    // Tracks the size of the ship currently being placed
+    private val _currentShipSizeToPlace = MutableStateFlow(shipsToPlaceSizes[0])
+    val currentShipSizeToPlace: StateFlow<Int> = _currentShipSizeToPlace.asStateFlow()
+
+    // Tracks if the user wants to place the ship horizontally or vertically
+    private val _isHorizontal = MutableStateFlow(true)
+    val isHorizontal: StateFlow<Boolean> = _isHorizontal.asStateFlow()
+
     // Internal list to keep track of all ships to check win conditions later
     private val placedShips = mutableListOf<Ship>()
 
@@ -42,6 +63,9 @@ class GameViewModel : ViewModel() {
     private var isInitialized = false
 
     private var timerJob: Job? = null // Holds the coroutine job for the timer
+
+    // Used to remember if time was enabled so we can start it later
+    private var timeWasEnabled = false
 
     /**
      * Initializes the board with water (HIDDEN state).
@@ -51,87 +75,49 @@ class GameViewModel : ViewModel() {
         // We only want to create the board once per game
         if (isInitialized) return
 
+        timeWasEnabled = isTimeEnabled
         // Set the initial time
         if (isTimeEnabled) {
             _timeLeft.value = timeLimit
-            startTimer() // Start the countdown
         }
 
-        // 1. Create a mutable 2D list for easy modification during setup
         val initialBoard = MutableList(size) { row ->
             MutableList(size) { col ->
                 Cell(position = Position(row, col))
             }
         }
 
-        // 2. Define the fleet (Ship sizes: Carrier=5, Battleship=4, Cruiser=3, Submarine=3, Destroyer=2)
-        // We ensure the grid is at least 6x6 in our ConfigScreen, so these will fit.
-        val fleetSizes = listOf(5, 4, 3, 3, 2)
-
-        // 3. Place each ship randomly
-        for (shipSize in fleetSizes) {
-            placeShipRandomly(shipSize, size, initialBoard)
-        }
-
-        // 4. Expose the immutable board to the UI
         _boardState.value = initialBoard
-        isInitialized = true
-
-        // Initialize fleet status
+        _gamePhase.value = GamePhase.SETUP
         updateFleetStatus(initialBoard)
+        isInitialized = true
     }
 
     /**
-     * Tries to place a single ship on the board at random coordinates.
+     * Toggles the orientation for the next ship placement.
      */
-    private fun placeShipRandomly(shipSize: Int, boardSize: Int, board: MutableList<MutableList<Cell>>) {
-        var isPlaced = false
-        val maxAttempts = 100 // Prevent infinite loops if the board is too crowded
-        var attempts = 0
+    fun toggleOrientation() {
+        _isHorizontal.value = !_isHorizontal.value
+    }
 
-        while (!isPlaced && attempts < maxAttempts) {
-            attempts++
-            val isHorizontal = Random.nextBoolean()
-            val startRow = Random.nextInt(boardSize)
-            val startCol = Random.nextInt(boardSize)
+    /**
+     * Resets the board during the SETUP phase if the user gets stuck.
+     */
+    fun resetPlacement(size: Int) {
+        // Clear internal lists and reset index
+        placedShips.clear()
+        _currentShipIndex.value = 0
+        _currentShipSizeToPlace.value = shipsToPlaceSizes[0]
+        _isHorizontal.value = true
 
-            // Check boundaries
-            if (isHorizontal && startCol + shipSize > boardSize) continue
-            if (!isHorizontal && startRow + shipSize > boardSize) continue
-
-            var isValidPlacement = true
-            val shipPositions = mutableListOf<Position>()
-
-            for (i in 0 until shipSize) {
-                val row = if (isHorizontal) startRow else startRow + i
-                val col = if (isHorizontal) startCol + i else startCol
-
-                // Check surrounding cells (including diagonals)
-                // We check from row-1 to row+1, and col-1 to col+1
-                for (r in (row - 1)..(row + 1)) {
-                    for (c in (col - 1)..(col + 1)) {
-                        // Ensure we don't go out of bounds while checking surroundings
-                        if (r in 0 until boardSize && c in 0 until boardSize) {
-                            if (board[r][c].hasShip) {
-                                isValidPlacement = false
-                            }
-                        }
-                    }
-                }
-
-                if (!isValidPlacement) break // Break early if we found a conflict
-                shipPositions.add(Position(row, col))
-            }
-
-            // If it fits and has water all around it, place it
-            if (isValidPlacement) {
-                shipPositions.forEach { pos ->
-                    board[pos.row][pos.col] = board[pos.row][pos.col].copy(hasShip = true)
-                }
-                placedShips.add(Ship(shipSize, shipPositions))
-                isPlaced = true
+        // Generate a fresh empty board
+        val emptyBoard = MutableList(size) { row ->
+            MutableList(size) { col ->
+                Cell(position = Position(row, col))
             }
         }
+
+        _boardState.value = emptyBoard
     }
 
     /**
@@ -140,7 +126,7 @@ class GameViewModel : ViewModel() {
     private fun startTimer() {
         timerJob?.cancel() // Cancel any existing timer just in case
         timerJob = viewModelScope.launch {
-            while (_timeLeft.value > 0 && !_isGameOver.value) {
+            while (_timeLeft.value > 0 && _gamePhase.value == GamePhase.PLAYING) {
                 delay(1000L) // Wait for 1 second
                 _timeLeft.value -= 1 // Decrease time
 
@@ -153,35 +139,102 @@ class GameViewModel : ViewModel() {
 
     /**
      * Handles a user clicking on a specific cell.
+     * It delegates the action depending on the current Game Phase.
      */
     fun onCellClicked(position: Position) {
+        when (_gamePhase.value) {
+            GamePhase.SETUP -> tryPlaceShipManually(position)
+            GamePhase.PLAYING -> performAttack(position)
+            GamePhase.GAME_OVER -> return // Do nothing
+        }
+    }
+
+    /**
+     * Attempts to place the current ship at the clicked position.
+     */
+    private fun tryPlaceShipManually(startPos: Position) {
+        if (_currentShipIndex.value >= shipsToPlaceSizes.size) return
+
+        val shipSize = shipsToPlaceSizes[_currentShipIndex.value]
+        val horizontal = _isHorizontal.value
+        val board = _boardState.value
+        val boardSize = board.size
+
+        // 1. Check if it goes out of bounds
+        if (horizontal && startPos.col + shipSize > boardSize) return
+        if (!horizontal && startPos.row + shipSize > boardSize) return
+
+        // 2. Check overlap and "no touching" rules
+        var isValidPlacement = true
+        val shipPositions = mutableListOf<Position>()
+
+        for (i in 0 until shipSize) {
+            val row = if (horizontal) startPos.row else startPos.row + i
+            val col = if (horizontal) startPos.col + i else startPos.col
+
+            // Check surrounding cells (including diagonals)
+            for (r in (row - 1)..(row + 1)) {
+                for (c in (col - 1)..(col + 1)) {
+                    if (r in 0 until boardSize && c in 0 until boardSize) {
+                        if (board[r][c].hasShip) {
+                            isValidPlacement = false
+                        }
+                    }
+                }
+            }
+
+            if (!isValidPlacement) break
+            shipPositions.add(Position(row, col))
+        }
+
+        // 3. If valid, place it
+        if (isValidPlacement) {
+            val newBoard = board.map { row ->
+                row.map { cell ->
+                    if (shipPositions.contains(cell.position)) cell.copy(hasShip = true) else cell
+                }
+            }
+
+            placedShips.add(Ship(shipSize, shipPositions))
+            _boardState.value = newBoard
+
+            // 4. Move to the next ship, or start the game if all are placed
+            val nextIndex = _currentShipIndex.value + 1
+            if (nextIndex < shipsToPlaceSizes.size) {
+                _currentShipIndex.value = nextIndex
+                _currentShipSizeToPlace.value = shipsToPlaceSizes[nextIndex]
+            } else {
+                startGameplay()
+            }
+        }
+    }
+
+    private fun startGameplay() {
+        _gamePhase.value = GamePhase.PLAYING
+        updateFleetStatus(_boardState.value) // Populate the HUD
+
+        // Now we start the timer
+        if (timeWasEnabled) {
+            startTimer()
+        }
+    }
+
+    private fun performAttack(position: Position) {
         val currentBoard = _boardState.value
         val clickedCell = currentBoard[position.row][position.col]
 
-        // If the cell is already revealed, do nothing
         if (clickedCell.state != CellState.HIDDEN) return
 
-        // Determine if it's a hit or a miss
         val newState = if (clickedCell.hasShip) CellState.HIT else CellState.MISS
 
-        // Create a completely new board to respect Jetpack Compose immutability rules.
         val newBoard = currentBoard.map { row ->
             row.map { cell ->
-                if (cell.position == position) {
-                    cell.copy(state = newState)
-                } else {
-                    cell
-                }
+                if (cell.position == position) cell.copy(state = newState) else cell
             }
         }
 
-        // Emit the new board state
         _boardState.value = newBoard
-
-        // Update the HUD when a cell is clicked
         updateFleetStatus(newBoard)
-
-        // Check if this move won the game
         checkWinCondition(newBoard)
     }
 
@@ -189,24 +242,14 @@ class GameViewModel : ViewModel() {
      * Checks if all placed ships are fully sunk.
      */
     private fun checkWinCondition(board: List<List<Cell>>) {
-        val allSunk = placedShips.all { ship ->
-            ship.isSunk(board)
-        }
-
-        if (allSunk) {
-            endGame(won = true)
-        }
+        val allSunk = placedShips.all { ship -> ship.isSunk(board) }
+        if (allSunk) endGame(won = true)
     }
 
     private fun endGame(won: Boolean) {
+        _gamePhase.value = GamePhase.GAME_OVER
         _isGameOver.value = true
-        timerJob?.cancel() // Stop the timer
-
-        if (won) {
-            println("GAME OVER - YOU WIN!")
-        } else {
-            println("GAME OVER - TIME OUT!")
-        }
+        timerJob?.cancel()
     }
 
     /**

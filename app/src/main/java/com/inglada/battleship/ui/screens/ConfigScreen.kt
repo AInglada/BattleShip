@@ -63,8 +63,8 @@ fun ConfigScreen(
             Slider(
                 value = gridSize,
                 onValueChange = { gridSize = it },
-                valueRange = 6f..12f, // Min 6x6, Max 12x12
-                steps = 5 // Allows specific stops (7, 8, 9, 10, 11)
+                valueRange = 8f..12f, // Min 8x8, Max 12x12
+                steps = 3 // Allows specific stops (8, 9, 10, 11, 12)
             )
         }
 

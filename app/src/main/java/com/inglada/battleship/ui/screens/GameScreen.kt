@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +24,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.inglada.battleship.model.CellState
 import com.inglada.battleship.ui.navigation.AppScreens
+import com.inglada.battleship.viewmodel.GamePhase
 import com.inglada.battleship.viewmodel.GameViewModel
 import com.inglada.battleship.R
 
@@ -41,6 +43,11 @@ fun GameScreen(
     val isGameOver by viewModel.isGameOver.collectAsState()
     val fleetStatus by viewModel.fleetStatus.collectAsState()
 
+    // Observe manual placement states
+    val gamePhase by viewModel.gamePhase.collectAsState()
+    val currentShipSize by viewModel.currentShipSizeToPlace.collectAsState()
+    val isHorizontal by viewModel.isHorizontal.collectAsState()
+
     // 2. Initialize the board only once when the screen is first loaded
     LaunchedEffect(Unit) {
         viewModel.initializeBoard(gridSize, isTimeEnabled, timeLimit)
@@ -49,12 +56,10 @@ fun GameScreen(
     // 3. Listen for game over state to navigate to the Results screen
     LaunchedEffect(isGameOver) {
         if (isGameOver) {
-            // For now, we assume if time is not 0, the player won.
             val didWin = dynamicTimeLeft > 0 || !isTimeEnabled
             val timeSpent = if (isTimeEnabled) timeLimit - dynamicTimeLeft else 0
 
             navController.navigate(AppScreens.Results.createRoute(playerName, gridSize, didWin, timeSpent)) {
-                // Ensure we can't go back to the finished game by pressing the physical back button
                 popUpTo(AppScreens.Game.route) { inclusive = true }
             }
         }
@@ -81,7 +86,6 @@ fun GameScreen(
 
             // Check requirement: Red if time controlled, Blue if not
             if (isTimeEnabled) {
-                // It shows the dynamic time counting down
                 Text(
                     text = stringResource(id = R.string.game_time_seconds, dynamicTimeLeft),
                     style = MaterialTheme.typography.titleLarge,
@@ -115,27 +119,17 @@ fun GameScreen(
                                 .border(1.dp, Color.DarkGray)
                                 .background(
                                     when (cell.state) {
-                                        CellState.HIDDEN -> Color.LightGray
+                                        // Show ship in dark gray during SETUP phase, otherwise hide it
+                                        CellState.HIDDEN -> if (gamePhase == GamePhase.SETUP && cell.hasShip) Color.DarkGray else Color.LightGray
                                         CellState.MISS -> Color.Cyan
                                         CellState.HIT -> Color.Red
                                     }
                                 )
                                 .clickable {
-                                    // Let the ViewModel handle the click!
+                                    // Let the ViewModel handle the click
                                     viewModel.onCellClicked(cell.position)
                                 }
                         ) {
-                            // --- DEVELOPER CHEAT MODE ---
-                            // Uncomment the code below to see where the ships are generated
-                            /*
-                            if (cell.hasShip) {
-                                Text(
-                                    text = stringResource(id = R.string.game_hud_cheatShipPlacement),
-                                    modifier = Modifier.align(Alignment.Center),
-                                    color = Color.Black
-                                )
-                            }
-                            */
                         }
                     }
                 }
@@ -143,46 +137,79 @@ fun GameScreen(
         }
     }
 
-    val fleetStatusContent = @Composable {
-        // --- Fleet Status HUD ---
+    val bottomContent = @Composable {
+        // Dynamic Bottom Content based on Game Phase
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text(
-            text = stringResource(id = R.string.game_hud_title),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+        if (gamePhase == GamePhase.SETUP) {
+            // SETUP UI: Show instructions and buttons
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = stringResource(id = R.string.game_phase_setup, currentShipSize),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
 
-        // Draw the ships
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            fleetStatus.forEach { (shipSize, isSunk) ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    // Draw mini squares for each part of the ship
-                    Row(modifier = Modifier.padding(bottom = 4.dp)) {
-                        repeat(shipSize) {
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .padding(1.dp)
-                                    .background(if (isSunk) Color.Red else Color.DarkGray)
+                // Put buttons in a Row so they are side-by-side
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Button(onClick = { viewModel.toggleOrientation() }) {
+                        val orientationStr = if (isHorizontal) {
+                            stringResource(id = R.string.game_orientation_h)
+                        } else {
+                            stringResource(id = R.string.game_orientation_v)
+                        }
+                        Text(text = stringResource(id = R.string.game_btn_rotate, orientationStr))
+                    }
+
+                    // Reset Button
+                    Button(onClick = { viewModel.resetPlacement(gridSize) }) {
+                        Text(text = stringResource(id = R.string.game_btn_reset))
+                    }
+                }
+            }
+        } else {
+            // PLAYING UI: Show Fleet Status HUD
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = stringResource(id = R.string.game_hud_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                // Draw the ships
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    fleetStatus.forEach { (shipSize, isSunk) ->
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            // Draw mini squares for each part of the ship
+                            Row(modifier = Modifier.padding(bottom = 4.dp)) {
+                                repeat(shipSize) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(12.dp)
+                                            .padding(1.dp)
+                                            .background(if (isSunk) Color.Red else Color.DarkGray)
+                                    )
+                                }
+                            }
+                            // Status text
+                            Text(
+                                text = if (isSunk) stringResource(id = R.string.game_hud_sunk) else stringResource(id = R.string.game_hud_alive),
+                                color = if (isSunk) Color.Red else Color.Green,
+                                style = MaterialTheme.typography.bodySmall
                             )
                         }
                     }
-                    // Status text
-                    Text(
-                        text = if (isSunk) stringResource(id = R.string.game_hud_sunk) else stringResource(id = R.string.game_hud_alive),
-                        color = if (isSunk) Color.Red else Color.Green,
-                        style = MaterialTheme.typography.bodySmall
-                    )
                 }
             }
         }
     }
 
-    // --- Adaptive Layout Logic based on Orientation ---
+    // Adaptive Layout Logic based on Orientation
     if (isLandscape) {
         // Landscape Layout: Grid on the left, Information on the right
         Row(
@@ -191,12 +218,10 @@ fun GameScreen(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left Side: The Game Grid
             Box(modifier = Modifier.weight(1f)) {
                 gridContent()
             }
 
-            // Right Side: Header and Fleet Status (with scroll to prevent cutting)
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -207,11 +232,11 @@ fun GameScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 headerContent()
-                fleetStatusContent()
+                bottomContent()
             }
         }
     } else {
-        // Portrait Layout: Original sequential layout (Header -> Grid -> HUD)
+        // Portrait Layout: Original sequential layout (Header -> Grid -> BottomContent)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -220,7 +245,7 @@ fun GameScreen(
         ) {
             headerContent()
             gridContent()
-            fleetStatusContent()
+            bottomContent()
         }
     }
 }

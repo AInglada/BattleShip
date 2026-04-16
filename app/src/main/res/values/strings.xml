@@ -21,6 +21,15 @@
     <string name="game_cmdr">Cmdr: %1$s</string>
     <string name="game_time_seconds">%1$d s</string>
     <string name="game_time_infinite">∞</string>
+    <string name="game_hud_title">Enemy Fleet Status:</string>
+    <string name="game_hud_sunk">SUNK</string>
+    <string name="game_hud_alive">ALIVE</string>
+    <string name="game_hud_cheatShipPlacement">S</string>
+    <string name="game_phase_setup">Place ship (Size: %1$d)</string>
+    <string name="game_btn_rotate">Orientation: %1$s</string>
+    <string name="game_orientation_h">Horizontal</string>
+    <string name="game_orientation_v">Vertical</string>
+    <string name="game_btn_reset">Reset Placement</string>
 
     <string name="results_title">GAME RESULTS</string>
     <string name="results_default_email">professora@diei.udl.cat</string>
@@ -35,9 +44,4 @@
     <string name="log_lost">Status: Time\'s Up!</string>
     <string name="log_format">Player Alias: %1$s | Grid Size: %2$d x %3$d\nTotal Time: %4$d seconds.\n%5$s</string>
     <string name="email_subject_format">Log - %1$s</string>
-
-    <string name="game_hud_title">Enemy Fleet Status:</string>
-    <string name="game_hud_sunk">SUNK</string>
-    <string name="game_hud_alive">ALIVE</string>
-    <string name="game_hud_cheatShipPlacement">S</string>
 </resources>
