@@ -49,6 +49,10 @@ class GameViewModel : ViewModel() {
     private val _isGameOver = MutableStateFlow(false)
     val isGameOver: StateFlow<Boolean> = _isGameOver.asStateFlow()
 
+    // StateFlow to track if the game was lost due to time running out
+    private val _isTimeOut = MutableStateFlow(false)
+    val isTimeOut: StateFlow<Boolean> = _isTimeOut.asStateFlow()
+
     private val _playerWon = MutableStateFlow(false)
     val playerWon: StateFlow<Boolean> = _playerWon.asStateFlow()
 
@@ -161,6 +165,7 @@ class GameViewModel : ViewModel() {
                 if (timeWasEnabled && _isPlayerTurn.value) {
                     _timeLeft.value -= 1
                     if (_timeLeft.value <= 0) {
+                        _isTimeOut.value = true
                         endGame(won = false)
                     }
                 }

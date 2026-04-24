@@ -3,6 +3,8 @@ package com.inglada.battleship.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -15,6 +17,7 @@ import com.inglada.battleship.R
 
 @Composable
 fun ConfigScreen(
+    onBackClicked: () -> Unit,
     // Callback to navigate to the Game screen passing the selected data
     onStartGameClicked: (playerName: String, gridSize: Int, isTimeEnabled: Boolean, timeLimit: Int, isHardMode: Boolean) -> Unit
 ) {
@@ -31,11 +34,18 @@ fun ConfigScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .systemBarsPadding()
             .padding(24.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp) // Adds space between elements
     ) {
+        // Back Button
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+            IconButton(onClick = { onBackClicked() }) {
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
+        }
         Text(
             text = stringResource(id = R.string.config_title),
             style = MaterialTheme.typography.headlineMedium

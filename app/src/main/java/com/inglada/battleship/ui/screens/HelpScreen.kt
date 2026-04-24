@@ -3,7 +3,12 @@ package com.inglada.battleship.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,9 +26,16 @@ fun HelpScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .systemBarsPadding()
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Back Button
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+            IconButton(onClick = { navController.popBackStack() }) {
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
+        }
         Text(
             text = stringResource(id = R.string.help_title),
             style = MaterialTheme.typography.headlineMedium,

@@ -23,7 +23,7 @@ fun MainMenuScreen(navController: NavController) {
     val activity = LocalContext.current as? Activity
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().systemBarsPadding(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

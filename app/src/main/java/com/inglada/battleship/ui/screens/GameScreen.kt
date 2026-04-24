@@ -47,6 +47,7 @@ fun GameScreen(
     val dynamicTimeLeft by viewModel.timeLeft.collectAsState()
     val totalTimeSpent by viewModel.totalTimeSpent.collectAsState()
     val playerWon by viewModel.playerWon.collectAsState()
+    val isTimeOut by viewModel.isTimeOut.collectAsState()
     val isGameOver by viewModel.isGameOver.collectAsState()
     val gamePhase by viewModel.gamePhase.collectAsState()
 
@@ -68,6 +69,7 @@ fun GameScreen(
                 playerName = playerName,
                 gridSize = gridSize,
                 didWin = playerWon,
+                isTimeOut = isTimeOut,
                 timeSpent = totalTimeSpent,
                 isHardMode = isHardMode
             )) {
@@ -224,7 +226,7 @@ fun GameScreen(
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     // We use a scrollable surface so small screens don't cut the double board layout
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
         if (isLandscape) {
             Row(
                 modifier = Modifier

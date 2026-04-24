@@ -27,9 +27,9 @@ sealed class AppScreens(val route: String) {
     }
 
     // We pass the essential game data to build the Log in the Results screen
-    object Results : AppScreens("results_screen/{playerName}/{gridSize}/{didWin}/{timeSpent}/{isHardMode}") {
-        fun createRoute(playerName: String, gridSize: Int, didWin: Boolean, timeSpent: Int, isHardMode: Boolean): String {
-            return "results_screen/$playerName/$gridSize/$didWin/$timeSpent/$isHardMode"
+    object Results : AppScreens("results_screen/{playerName}/{gridSize}/{didWin}/{isTimeOut}/{timeSpent}/{isHardMode}") {
+        fun createRoute(playerName: String, gridSize: Int, didWin: Boolean, isTimeOut: Boolean, timeSpent: Int, isHardMode: Boolean): String {
+            return "results_screen/$playerName/$gridSize/$didWin/$isTimeOut/$timeSpent/$isHardMode"
         }
     }
 }
@@ -51,6 +51,7 @@ fun AppNavigation() {
         // 2. Configuration Route
         composable(route = AppScreens.Configuration.route) {
             ConfigScreen(
+                onBackClicked = { navController.popBackStack() },
                 onStartGameClicked = { playerName, gridSize, isTimeEnabled, timeLimit, isHardMode ->
                     navController.navigate(AppScreens.Game.createRoute(playerName, gridSize, isTimeEnabled, timeLimit, isHardMode))
                 }
@@ -92,6 +93,7 @@ fun AppNavigation() {
                 navArgument("playerName") { type = NavType.StringType },
                 navArgument("gridSize") { type = NavType.IntType },
                 navArgument("didWin") { type = NavType.BoolType },
+                navArgument("isTimeOut") { type = NavType.BoolType },
                 navArgument("timeSpent") { type = NavType.IntType },
                 navArgument("isHardMode") { type = NavType.BoolType }
             )
@@ -99,6 +101,7 @@ fun AppNavigation() {
             val playerName = backStackEntry.arguments?.getString("playerName") ?: "Unknown"
             val gridSize = backStackEntry.arguments?.getInt("gridSize") ?: 8
             val didWin = backStackEntry.arguments?.getBoolean("didWin") ?: false
+            val isTimeOut = backStackEntry.arguments?.getBoolean("isTimeOut") ?: false
             val timeSpent = backStackEntry.arguments?.getInt("timeSpent") ?: 0
             val isHardMode = backStackEntry.arguments?.getBoolean("isHardMode") ?: false
 
@@ -107,6 +110,7 @@ fun AppNavigation() {
                 playerName = playerName,
                 gridSize = gridSize,
                 didWin = didWin,
+                isTimeOut = isTimeOut,
                 timeSpent = timeSpent,
                 isHardMode = isHardMode
             )

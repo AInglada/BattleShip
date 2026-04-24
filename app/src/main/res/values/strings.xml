@@ -18,7 +18,7 @@
     <string name="config_ai_hard">Hard (Tactical)</string>
 
     <string name="help_title">HOW TO PLAY</string>
-    <string name="help_content">Welcome to BATTLESHIP!\n\nThe goal of the game is to find and sink the entire hidden enemy fleet before the time runs out (if time control is enabled).\n\n1. The grid hides 5 ships of different sizes (5, 4, 3, 3, and 2 squares).\n2. Tap any square on the grid to guess.\n3. A BLUE square means you hit water (MISS).\n4. A RED square means you hit a ship (HIT).\n5. Find all parts of all ships to win the game!\n\nGood luck, Commander!</string>
+    <string name="help_content">COMMANDER\'S MANUAL:\n\n1. Setup: Place your 5 ships strategically. Ships cannot touch each other, even diagonally.\n2. AI Difficulty: Choose \'Easy\' for random attacks or \'Hard\' for tactical AI targeting.\n3. Gameplay: Take turns firing at the enemy waters. First to sink the entire enemy fleet wins!\n4. Time Limit: If enabled, you must fire before the clock runs out, or you will lose the battle.</string>
     <string name="help_btn_back">Back to Menu</string>
 
     <string name="game_cmdr">Cmdr: %1$s</string>
@@ -34,7 +34,7 @@
     <string name="game_orientation_v">Vertical</string>
     <string name="game_btn_reset">Reset Placement</string>
     <string name="game_turn_player">COMMANDER, IT\'S YOUR TURN!</string>
-    <string name="game_turn_enemy">ENEMY IS AROUND... THINKING</string>
+    <string name="game_turn_enemy">ENEMY IS AROUND… THINKING</string>
     <string name="game_board_yours">Your Fleet</string>
     <string name="game_board_enemy">Enemy Waters</string>
 
@@ -47,10 +47,12 @@
     <string name="results_btn_send">Send Email</string>
     <string name="results_btn_new_game">New Game / Exit</string>
 
-    <string name="log_won">Status: You Won!</string>
-    <string name="log_lost">Status: Time\'s Up!</string>
+    <string name="log_outcome_win">Victory! The enemy fleet was destroyed.</string>
+    <string name="log_outcome_loss_ai">Defeat! The AI destroyed your fleet.</string>
+    <string name="log_outcome_loss_time">Defeat! Time ran out.</string>
     <string name="log_format">Commander %1$s fought on a %2$dx%3$d grid.\nAI Difficulty: %4$s\nTotal Match Time: %5$d seconds.\nOutcome: %6$s</string>
     <string name="results_diff_easy">Easy (Random)</string>
     <string name="results_diff_hard">Hard (Tactical)</string>
     <string name="email_subject_format">Log - %1$s</string>
+    <string name="results_btn_play_again">Play Again</string>
 </resources>

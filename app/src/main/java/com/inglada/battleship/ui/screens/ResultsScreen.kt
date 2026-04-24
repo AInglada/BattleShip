@@ -1,5 +1,6 @@
 package com.inglada.battleship.ui.screens
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -26,6 +27,7 @@ fun ResultsScreen(
     playerName: String,
     gridSize: Int,
     didWin: Boolean,
+    isTimeOut: Boolean,
     timeSpent: Int,
     isHardMode: Boolean
 ) {
@@ -37,7 +39,12 @@ fun ResultsScreen(
     }
 
     // Generate the Log String
-    val resultMessage = if (didWin) stringResource(id = R.string.log_won) else stringResource(id = R.string.log_lost)
+    // Determine the exact reason for the outcome
+    val resultMessage = when {
+        didWin -> stringResource(id = R.string.log_outcome_win)
+        isTimeOut -> stringResource(id = R.string.log_outcome_loss_time)
+        else -> stringResource(id = R.string.log_outcome_loss_ai)
+    }
     val diffMessage = if (isHardMode) stringResource(id = R.string.results_diff_hard) else stringResource(id = R.string.results_diff_easy)
     val initialLog = stringResource(
         id = R.string.log_format,
@@ -64,6 +71,7 @@ fun ResultsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .systemBarsPadding()
             .padding(24.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -109,16 +117,31 @@ fun ResultsScreen(
             Text(stringResource(id = R.string.results_btn_send))
         }
 
-        Button(
-            onClick = {
-                // Navigate back to Main Menu and clear the backstack
-                navController.navigate(AppScreens.MainMenu.route) {
-                    popUpTo(0) // Clears the whole stack so we don't return to the finished game
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(text = stringResource(id = R.string.results_btn_new_game))
+            // Play Again -> Goes to Config Screen and clears the back stack
+            Button(
+                onClick = {
+                    navController.navigate(AppScreens.Configuration.route) {
+                        popUpTo(AppScreens.MainMenu.route)
+                    }
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(stringResource(id = R.string.results_btn_play_again))
+            }
+
+            // Exit -> Closes the entire application
+            OutlinedButton(
+                onClick = {
+                    (context as? Activity)?.finish()
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(stringResource(id = R.string.menu_btn_exit))
+            }
         }
     }
 }
