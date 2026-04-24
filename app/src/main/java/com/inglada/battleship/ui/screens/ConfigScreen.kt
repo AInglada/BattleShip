@@ -15,20 +15,24 @@ import androidx.compose.ui.res.stringResource
 import kotlin.math.roundToInt
 import com.inglada.battleship.R
 
+/**
+ * Composable that represents the game configuration screen.
+ *
+ * Allows the user to customize player alias, grid size, time limits, and AI difficulty.
+ *
+ * @param onBackClicked Callback executed when the back navigation is triggered.
+ * @param onStartGameClicked Callback executed to initiate the game with the selected parameters.
+ */
 @Composable
 fun ConfigScreen(
     onBackClicked: () -> Unit,
-    // Callback to navigate to the Game screen passing the selected data
     onStartGameClicked: (playerName: String, gridSize: Int, isTimeEnabled: Boolean, timeLimit: Int, isHardMode: Boolean) -> Unit
 ) {
-    // UI States using 'remember' to survive recompositions
-    // Read the default name from resources outside the remember block
     val defaultPlayerName = stringResource(id = R.string.config_default_player)
-    // Use it as the initial state
     var playerName by rememberSaveable { mutableStateOf(defaultPlayerName) }
-    var gridSize by rememberSaveable { mutableFloatStateOf(8f) } // 8x8 by default
+    var gridSize by rememberSaveable { mutableFloatStateOf(8f) }
     var isTimeEnabled by rememberSaveable { mutableStateOf(false) }
-    var timeLimit by rememberSaveable { mutableFloatStateOf(60f) } // 60 seconds by default
+    var timeLimit by rememberSaveable { mutableFloatStateOf(60f) }
     var isHardMode by rememberSaveable { mutableStateOf(false) }
 
     Column(
@@ -38,9 +42,8 @@ fun ConfigScreen(
             .padding(24.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp) // Adds space between elements
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Back Button
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
             IconButton(onClick = { onBackClicked() }) {
                 Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -53,7 +56,6 @@ fun ConfigScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 1. Player Alias Input
         OutlinedTextField(
             value = playerName,
             onValueChange = { playerName = it },
@@ -62,7 +64,6 @@ fun ConfigScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // 2. Grid Size Selection
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = stringResource(
@@ -74,12 +75,11 @@ fun ConfigScreen(
             Slider(
                 value = gridSize,
                 onValueChange = { gridSize = it },
-                valueRange = 8f..12f, // Min 8x8, Max 12x12
-                steps = 3 // Allows specific stops (8, 9, 10, 11, 12)
+                valueRange = 8f..12f,
+                steps = 3
             )
         }
 
-        // 3. Time Control Checkbox
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -91,7 +91,6 @@ fun ConfigScreen(
             Text(text = stringResource(id = R.string.config_enable_time))
         }
 
-        // 4. Time Limit Selection (Visible only if time control is enabled)
         if (isTimeEnabled) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
@@ -111,7 +110,6 @@ fun ConfigScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 5. AI Difficulty Selector
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -133,7 +131,6 @@ fun ConfigScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Start Game Button
         Button(
             onClick = {
                 onStartGameClicked(

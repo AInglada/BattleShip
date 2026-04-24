@@ -17,17 +17,24 @@ import androidx.navigation.NavController
 import com.inglada.battleship.R
 import com.inglada.battleship.ui.navigation.AppScreens
 
+/**
+ * Composable that represents the main menu screen of the application.
+ *
+ * Provides options to start a new game, view instructions, or exit the application.
+ *
+ * @param navController Controller to handle navigation to other screens.
+ */
 @Composable
 fun MainMenuScreen(navController: NavController) {
-    // We need the Activity context to be able to close the app
     val activity = LocalContext.current as? Activity
 
     Column(
-        modifier = Modifier.fillMaxSize().systemBarsPadding(),
+        modifier = Modifier
+            .fillMaxSize()
+            .systemBarsPadding(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Game Title
         Text(
             text = stringResource(id = R.string.menu_title),
             fontSize = 40.sp,
@@ -36,32 +43,29 @@ fun MainMenuScreen(navController: NavController) {
             modifier = Modifier.padding(bottom = 48.dp)
         )
 
-        // Start Game Button
         Button(
             onClick = { navController.navigate(AppScreens.Configuration.route) },
             modifier = Modifier
-                .fillMaxWidth(0.6f) // Takes 60% of the screen width
+                .fillMaxWidth(0.6f)
                 .padding(bottom = 16.dp)
         ) {
-            Text(text = stringResource(id = R.string.menu_btn_start),)
+            Text(text = stringResource(id = R.string.menu_btn_start))
         }
 
-        // Help Button
         Button(
             onClick = { navController.navigate(AppScreens.Help.route) },
             modifier = Modifier
                 .fillMaxWidth(0.6f)
                 .padding(bottom = 16.dp)
         ) {
-            Text(text = stringResource(id = R.string.menu_btn_help),)
+            Text(text = stringResource(id = R.string.menu_btn_help))
         }
 
-        // Exit Button
         Button(
             onClick = { activity?.finish() },
             modifier = Modifier.fillMaxWidth(0.6f)
         ) {
-            Text(text = stringResource(id = R.string.menu_btn_exit),)
+            Text(text = stringResource(id = R.string.menu_btn_exit))
         }
     }
 }

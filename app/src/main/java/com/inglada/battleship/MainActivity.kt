@@ -11,6 +11,12 @@ import androidx.compose.ui.Modifier
 import com.inglada.battleship.ui.navigation.AppNavigation
 import com.inglada.battleship.ui.theme.BattleShipTheme
 
+/**
+ * The main entry point of the Battleship application.
+ *
+ * This activity initializes the application and sets up the Jetpack Compose UI
+ * with the defined navigation graph and theme.
+ */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -21,7 +27,6 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Initialize the navigation graph
                     AppNavigation()
                 }
             }

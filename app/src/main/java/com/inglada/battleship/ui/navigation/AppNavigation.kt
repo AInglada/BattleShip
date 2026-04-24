@@ -12,43 +12,64 @@ import com.inglada.battleship.ui.screens.GameScreen
 import com.inglada.battleship.ui.screens.HelpScreen
 import com.inglada.battleship.ui.screens.ResultsScreen
 
-// Defines the unique routes for each screen in the app
+/**
+ * Defines the unique routes and navigation arguments for each screen in the application.
+ *
+ * @property route The string identifier for the destination.
+ */
 sealed class AppScreens(val route: String) {
+    /** Route for the initial landing screen. */
     object MainMenu : AppScreens("main_menu")
+    /** Route for the instructional screen. */
     object Help : AppScreens("help_screen")
+    /** Route for the game configuration settings screen. */
     object Configuration : AppScreens("configuration_screen")
 
-    // The Game route now expects 4 variables in its URL path
+    /**
+     * Route for the active game session.
+     * Includes parameters for player preferences and game rules.
+     */
     object Game : AppScreens("game_screen/{playerName}/{gridSize}/{isTimeEnabled}/{timeLimit}/{isHardMode}") {
-        // Helper function to build the final navigation string
+        /**
+         * Helper function to build the navigation route with the required arguments.
+         */
         fun createRoute(playerName: String, gridSize: Int, isTimeEnabled: Boolean, timeLimit: Int, isHardMode: Boolean): String {
             return "game_screen/$playerName/$gridSize/$isTimeEnabled/$timeLimit/$isHardMode"
         }
     }
 
-    // We pass the essential game data to build the Log in the Results screen
+    /**
+     * Route for the results summary screen shown after a match.
+     * Includes metrics and outcome data for logging.
+     */
     object Results : AppScreens("results_screen/{playerName}/{gridSize}/{didWin}/{isTimeOut}/{timeSpent}/{isHardMode}") {
+        /**
+         * Helper function to build the navigation route with the required arguments.
+         */
         fun createRoute(playerName: String, gridSize: Int, didWin: Boolean, isTimeOut: Boolean, timeSpent: Int, isHardMode: Boolean): String {
             return "results_screen/$playerName/$gridSize/$didWin/$isTimeOut/$timeSpent/$isHardMode"
         }
     }
 }
 
+/**
+ * The root navigation component that manages the screen transitions and back stack.
+ *
+ * It defines the [NavHost] and all its composable destinations, extracting
+ * navigation arguments where necessary.
+ */
 @Composable
 fun AppNavigation() {
-    // NavController manages app navigation within a NavHost
     val navController = rememberNavController()
 
     NavHost(
         navController = navController,
         startDestination = AppScreens.MainMenu.route
     ) {
-        // 1. Main Menu Route
         composable(route = AppScreens.MainMenu.route) {
             MainMenuScreen(navController = navController)
         }
 
-        // 2. Configuration Route
         composable(route = AppScreens.Configuration.route) {
             ConfigScreen(
                 onBackClicked = { navController.popBackStack() },
@@ -58,7 +79,6 @@ fun AppNavigation() {
             )
         }
 
-        // 3. Game Route
         composable(
             route = AppScreens.Game.route,
             arguments = listOf(
@@ -69,7 +89,6 @@ fun AppNavigation() {
                 navArgument("isHardMode") { type = NavType.BoolType }
             )
         ) { backStackEntry ->
-            // Extract the arguments
             val playerName = backStackEntry.arguments?.getString("playerName") ?: "Unknown"
             val gridSize = backStackEntry.arguments?.getInt("gridSize") ?: 8
             val isTimeEnabled = backStackEntry.arguments?.getBoolean("isTimeEnabled") ?: false
@@ -86,7 +105,6 @@ fun AppNavigation() {
             )
         }
 
-        // 4. Results Route
         composable(
             route = AppScreens.Results.route,
             arguments = listOf(
@@ -116,7 +134,6 @@ fun AppNavigation() {
             )
         }
 
-        // 5. Help Route
         composable(route = AppScreens.Help.route) {
             HelpScreen(navController = navController)
         }

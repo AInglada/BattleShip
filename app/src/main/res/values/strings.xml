@@ -39,7 +39,7 @@
     <string name="game_board_enemy">Enemy Waters</string>
 
     <string name="results_title">GAME RESULTS</string>
-    <string name="results_default_email">professora@diei.udl.cat</string>
+    <string name="results_default_email">example@example.com</string>
     <string name="results_email_chooser">Choose an Email client</string>
     <string name="results_date_time">Date and Time</string>
     <string name="results_log_data">Log Data</string>

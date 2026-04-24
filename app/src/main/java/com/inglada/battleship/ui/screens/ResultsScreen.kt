@@ -21,6 +21,20 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Composable that represents the results summary screen.
+ *
+ * Displays the outcome of the match and allows the user to export the game log via email,
+ * play again, or exit the application.
+ *
+ * @param navController Controller to handle navigation.
+ * @param playerName Alias of the player.
+ * @param gridSize Dimensions of the game grid.
+ * @param didWin Whether the player won the match.
+ * @param isTimeOut Whether the game ended due to a timeout.
+ * @param timeSpent Total time spent in the match in seconds.
+ * @param isHardMode Whether the game was played in hard difficulty mode.
+ */
 @Composable
 fun ResultsScreen(
     navController: androidx.navigation.NavController,
@@ -33,36 +47,36 @@ fun ResultsScreen(
 ) {
     val context = LocalContext.current
 
-    // Generate current Date and Time
     val currentDateTime = remember {
         SimpleDateFormat("MMM dd, yyyy h:mm:ss a", Locale.getDefault()).format(Date())
     }
 
-    // Generate the Log String
-    // Determine the exact reason for the outcome
     val resultMessage = when {
         didWin -> stringResource(id = R.string.log_outcome_win)
         isTimeOut -> stringResource(id = R.string.log_outcome_loss_time)
         else -> stringResource(id = R.string.log_outcome_loss_ai)
     }
-    val diffMessage = if (isHardMode) stringResource(id = R.string.results_diff_hard) else stringResource(id = R.string.results_diff_easy)
+
+    val diffMessage = if (isHardMode) {
+        stringResource(id = R.string.results_diff_hard)
+    } else {
+        stringResource(id = R.string.results_diff_easy)
+    }
+
     val initialLog = stringResource(
         id = R.string.log_format,
-        playerName, // %1$s
-        gridSize,   // %2$d
-        gridSize,   // %3$d
-        diffMessage,// %4$s (Easy o Hard)
-        timeSpent,  // %5$d (Time spent)
-        resultMessage // %6$s (Win or Lose)
+        playerName,
+        gridSize,
+        gridSize,
+        diffMessage,
+        timeSpent,
+        resultMessage
     )
 
-    // States for the text fields (so the user can edit them if they want)
     var dateTimeText by rememberSaveable { mutableStateOf(currentDateTime) }
     var logText by rememberSaveable { mutableStateOf(initialLog) }
 
-    // Read the string resource out here in the Composable scope
     val defaultEmail = stringResource(id = R.string.results_default_email)
-    // Pass the resolved string into the initial state
     var emailText by rememberSaveable { mutableStateOf(defaultEmail) }
 
     val emailSubject = stringResource(id = R.string.email_subject_format, dateTimeText)
@@ -82,7 +96,6 @@ fun ResultsScreen(
             style = MaterialTheme.typography.headlineMedium
         )
 
-        // 1. Date and Time TextField
         OutlinedTextField(
             value = dateTimeText,
             onValueChange = { dateTimeText = it },
@@ -90,7 +103,6 @@ fun ResultsScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // 2. Log Data TextField
         OutlinedTextField(
             value = logText,
             onValueChange = { logText = it },
@@ -99,7 +111,6 @@ fun ResultsScreen(
             minLines = 4
         )
 
-        // 3. Recipient Email TextField
         OutlinedTextField(
             value = emailText,
             onValueChange = { emailText = it },
@@ -109,7 +120,6 @@ fun ResultsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Actions
         Button(
             onClick = { sendEmail(context, emailText, emailSubject, logText, chooserTitle) },
             modifier = Modifier.fillMaxWidth()
@@ -121,7 +131,6 @@ fun ResultsScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Play Again -> Goes to Config Screen and clears the back stack
             Button(
                 onClick = {
                     navController.navigate(AppScreens.Configuration.route) {
@@ -133,7 +142,6 @@ fun ResultsScreen(
                 Text(stringResource(id = R.string.results_btn_play_again))
             }
 
-            // Exit -> Closes the entire application
             OutlinedButton(
                 onClick = {
                     (context as? Activity)?.finish()
@@ -146,7 +154,15 @@ fun ResultsScreen(
     }
 }
 
-// Helper function to trigger the Android Email Intent
+/**
+ * Triggers an Android Intent to send an email with the match log.
+ *
+ * @param context The current context.
+ * @param email Recipient email address.
+ * @param subject Subject of the email.
+ * @param logContent The body of the email containing the match log.
+ * @param chooserTitle The title for the application chooser.
+ */
 private fun sendEmail(
     context: Context,
     email: String,
