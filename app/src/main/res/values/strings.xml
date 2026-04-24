@@ -49,6 +49,8 @@
 
     <string name="log_won">Status: You Won!</string>
     <string name="log_lost">Status: Time\'s Up!</string>
-    <string name="log_format">Player Alias: %1$s | Grid Size: %2$d x %3$d\nTotal Time: %4$d seconds.\n%5$s</string>
+    <string name="log_format">Commander %1$s fought on a %2$dx%3$d grid.\nAI Difficulty: %4$s\nTotal Match Time: %5$d seconds.\nOutcome: %6$s</string>
+    <string name="results_diff_easy">Easy (Random)</string>
+    <string name="results_diff_hard">Hard (Tactical)</string>
     <string name="email_subject_format">Log - %1$s</string>
 </resources>

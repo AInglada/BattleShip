@@ -38,6 +38,9 @@ class GameViewModel : ViewModel() {
     private val _timeLeft = MutableStateFlow(0)
     val timeLeft: StateFlow<Int> = _timeLeft.asStateFlow()
 
+    private val _totalTimeSpent = MutableStateFlow(0)
+    val totalTimeSpent: StateFlow<Int> = _totalTimeSpent.asStateFlow()
+
     // We track the specific phase (SETUP, PLAYING, GAME_OVER)
     private val _gamePhase = MutableStateFlow(GamePhase.SETUP)
     val gamePhase: StateFlow<GamePhase> = _gamePhase.asStateFlow()
@@ -45,6 +48,11 @@ class GameViewModel : ViewModel() {
     // StateFlow to hold the game status (isPlaying, won, lost)
     private val _isGameOver = MutableStateFlow(false)
     val isGameOver: StateFlow<Boolean> = _isGameOver.asStateFlow()
+
+    private val _playerWon = MutableStateFlow(false)
+    val playerWon: StateFlow<Boolean> = _playerWon.asStateFlow()
+
+    private var baseTimeLimit = 0
 
     // StateFlow to manage the turn system between Player and AI
     private val _isPlayerTurn = MutableStateFlow(true)
@@ -99,6 +107,7 @@ class GameViewModel : ViewModel() {
         isHardMode = hardMode
 
         // Set the initial time
+        baseTimeLimit = timeLimit
         if (isTimeEnabled) {
             _timeLeft.value = timeLimit
         }
@@ -144,14 +153,16 @@ class GameViewModel : ViewModel() {
      * Starts the coroutine timer for the gameplay phase.
      */
     private fun startTimer() {
-        timerJob?.cancel() // Cancel any existing timer just in case
+        timerJob?.cancel()
         timerJob = viewModelScope.launch {
-            while (_timeLeft.value > 0 && _gamePhase.value == GamePhase.PLAYING) {
-                delay(1000L) // Wait for 1 second
-                _timeLeft.value -= 1 // Decrease time
-
-                if (_timeLeft.value == 0) {
-                    endGame(won = false) // Time's up
+            while (_gamePhase.value == GamePhase.PLAYING) {
+                delay(1000L)
+                _totalTimeSpent.value += 1
+                if (timeWasEnabled && _isPlayerTurn.value) {
+                    _timeLeft.value -= 1
+                    if (_timeLeft.value <= 0) {
+                        endGame(won = false)
+                    }
                 }
             }
         }
@@ -240,11 +251,7 @@ class GameViewModel : ViewModel() {
         _gamePhase.value = GamePhase.PLAYING
         placeEnemyShipsRandomly(_enemyBoardState.value.size)
         updateEnemyFleetStatus(_enemyBoardState.value) // Populate the HUD
-
-        // Now we start the timer
-        if (timeWasEnabled) {
-            startTimer()
-        }
+        startTimer()
     }
 
     /**
@@ -323,6 +330,7 @@ class GameViewModel : ViewModel() {
         if (playerWon) {
             endGame(won = true)
         } else {
+            if (timeWasEnabled) _timeLeft.value = baseTimeLimit
             // Pass turn to AI and simulate thinking time
             _isPlayerTurn.value = false
             viewModelScope.launch {
@@ -412,6 +420,7 @@ class GameViewModel : ViewModel() {
      * Ends the game and stops the timer.
      */
     private fun endGame(won: Boolean) {
+        _playerWon.value = won
         _gamePhase.value = GamePhase.GAME_OVER
         _isGameOver.value = true
         timerJob?.cancel()

@@ -27,9 +27,9 @@ sealed class AppScreens(val route: String) {
     }
 
     // We pass the essential game data to build the Log in the Results screen
-    object Results : AppScreens("results_screen/{playerName}/{gridSize}/{didWin}/{timeSpent}") {
-        fun createRoute(playerName: String, gridSize: Int, didWin: Boolean, timeSpent: Int): String {
-            return "results_screen/$playerName/$gridSize/$didWin/$timeSpent"
+    object Results : AppScreens("results_screen/{playerName}/{gridSize}/{didWin}/{timeSpent}/{isHardMode}") {
+        fun createRoute(playerName: String, gridSize: Int, didWin: Boolean, timeSpent: Int, isHardMode: Boolean): String {
+            return "results_screen/$playerName/$gridSize/$didWin/$timeSpent/$isHardMode"
         }
     }
 }
@@ -92,20 +92,23 @@ fun AppNavigation() {
                 navArgument("playerName") { type = NavType.StringType },
                 navArgument("gridSize") { type = NavType.IntType },
                 navArgument("didWin") { type = NavType.BoolType },
-                navArgument("timeSpent") { type = NavType.IntType }
+                navArgument("timeSpent") { type = NavType.IntType },
+                navArgument("isHardMode") { type = NavType.BoolType }
             )
         ) { backStackEntry ->
             val playerName = backStackEntry.arguments?.getString("playerName") ?: "Unknown"
             val gridSize = backStackEntry.arguments?.getInt("gridSize") ?: 8
             val didWin = backStackEntry.arguments?.getBoolean("didWin") ?: false
             val timeSpent = backStackEntry.arguments?.getInt("timeSpent") ?: 0
+            val isHardMode = backStackEntry.arguments?.getBoolean("isHardMode") ?: false
 
             ResultsScreen(
                 navController = navController,
                 playerName = playerName,
                 gridSize = gridSize,
                 didWin = didWin,
-                timeSpent = timeSpent
+                timeSpent = timeSpent,
+                isHardMode = isHardMode
             )
         }
 

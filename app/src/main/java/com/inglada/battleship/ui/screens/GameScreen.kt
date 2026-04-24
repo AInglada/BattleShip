@@ -45,6 +45,8 @@ fun GameScreen(
     val enemyBoard by viewModel.enemyBoardState.collectAsState()
 
     val dynamicTimeLeft by viewModel.timeLeft.collectAsState()
+    val totalTimeSpent by viewModel.totalTimeSpent.collectAsState()
+    val playerWon by viewModel.playerWon.collectAsState()
     val isGameOver by viewModel.isGameOver.collectAsState()
     val gamePhase by viewModel.gamePhase.collectAsState()
 
@@ -62,11 +64,13 @@ fun GameScreen(
     // 3. Navigation on Game Over
     LaunchedEffect(isGameOver) {
         if (isGameOver) {
-            // We win if the enemy fleet is completely sunk
-            val didWin = enemyFleetStatus.isNotEmpty() && enemyFleetStatus.all { it.second }
-            val timeSpent = if (isTimeEnabled) timeLimit - dynamicTimeLeft else 0
-
-            navController.navigate(AppScreens.Results.createRoute(playerName, gridSize, didWin, timeSpent)) {
+            navController.navigate(AppScreens.Results.createRoute(
+                playerName = playerName,
+                gridSize = gridSize,
+                didWin = playerWon,
+                timeSpent = totalTimeSpent,
+                isHardMode = isHardMode
+            )) {
                 popUpTo(AppScreens.Game.route) { inclusive = true }
             }
         }

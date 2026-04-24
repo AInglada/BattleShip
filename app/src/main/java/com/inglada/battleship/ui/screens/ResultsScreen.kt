@@ -26,7 +26,8 @@ fun ResultsScreen(
     playerName: String,
     gridSize: Int,
     didWin: Boolean,
-    timeSpent: Int
+    timeSpent: Int,
+    isHardMode: Boolean
 ) {
     val context = LocalContext.current
 
@@ -37,13 +38,15 @@ fun ResultsScreen(
 
     // Generate the Log String
     val resultMessage = if (didWin) stringResource(id = R.string.log_won) else stringResource(id = R.string.log_lost)
+    val diffMessage = if (isHardMode) stringResource(id = R.string.results_diff_hard) else stringResource(id = R.string.results_diff_easy)
     val initialLog = stringResource(
         id = R.string.log_format,
         playerName, // %1$s
         gridSize,   // %2$d
         gridSize,   // %3$d
-        timeSpent,  // %4$d
-        resultMessage // %5$s
+        diffMessage,// %4$s (Easy o Hard)
+        timeSpent,  // %5$d (Time spent)
+        resultMessage // %6$s (Win or Lose)
     )
 
     // States for the text fields (so the user can edit them if they want)
