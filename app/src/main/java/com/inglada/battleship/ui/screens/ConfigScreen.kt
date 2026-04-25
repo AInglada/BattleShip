@@ -32,7 +32,7 @@ fun ConfigScreen(
     var playerName by rememberSaveable { mutableStateOf(defaultPlayerName) }
     var gridSize by rememberSaveable { mutableFloatStateOf(8f) }
     var isTimeEnabled by rememberSaveable { mutableStateOf(false) }
-    var timeLimit by rememberSaveable { mutableFloatStateOf(60f) }
+    var timeLimit by rememberSaveable { mutableFloatStateOf(15f) }
     var isHardMode by rememberSaveable { mutableStateOf(false) }
 
     Column(
@@ -60,6 +60,7 @@ fun ConfigScreen(
             value = playerName,
             onValueChange = { playerName = it },
             label = { Text(stringResource(id = R.string.config_player_alias)) },
+            isError = playerName.isBlank(),
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -102,8 +103,8 @@ fun ConfigScreen(
                 Slider(
                     value = timeLimit,
                     onValueChange = { timeLimit = it },
-                    valueRange = 30f..120f,
-                    steps = 8
+                    valueRange = 5f..30f,
+                    steps = 4
                 )
             }
         }
@@ -141,6 +142,7 @@ fun ConfigScreen(
                     isHardMode
                 )
             },
+            enabled = playerName.isNotBlank(),
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(stringResource(id = R.string.config_btn_start))

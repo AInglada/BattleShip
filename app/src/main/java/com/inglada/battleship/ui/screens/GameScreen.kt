@@ -358,14 +358,21 @@ fun GridBoard(
     if (board.isEmpty()) return
     Column(
         modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f) // Forces the board to be a perfect square dynamically
             .border(2.dp, MaterialTheme.colorScheme.outline)
             .padding(4.dp)
     ) {
         for (row in 0 until size) {
-            Row {
+            Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 for (col in 0 until size) {
                     val cell = board[row][col]
-                    CellUI(cell, onCellClick, showShips)
+                    CellUI(
+                        cell = cell,
+                        onCellClick = onCellClick,
+                        showShips = showShips,
+                        modifier = Modifier.weight(1f).fillMaxHeight()
+                    )
                 }
             }
         }
@@ -376,7 +383,8 @@ fun GridBoard(
 fun CellUI(
     cell: Cell,
     onCellClick: (com.inglada.battleship.model.Position) -> Unit,
-    showShips: Boolean
+    showShips: Boolean,
+    modifier: Modifier = Modifier
 ) {
     val backgroundColor = when (cell.state) {
         CellState.HIT -> Color.Red
@@ -385,8 +393,7 @@ fun CellUI(
     }
 
     Box(
-        modifier = Modifier
-            .size(32.dp)
+        modifier = modifier
             .padding(1.dp)
             .background(backgroundColor)
             .clickable { onCellClick(cell.position) },

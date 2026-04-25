@@ -100,6 +100,7 @@ fun ResultsScreen(
             value = dateTimeText,
             onValueChange = { dateTimeText = it },
             label = { Text(text = stringResource(id = R.string.results_date_time)) },
+            readOnly = true,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -107,6 +108,7 @@ fun ResultsScreen(
             value = logText,
             onValueChange = { logText = it },
             label = { Text(text = stringResource(id = R.string.results_log_data)) },
+            readOnly = true,
             modifier = Modifier.fillMaxWidth(),
             minLines = 4
         )
@@ -115,6 +117,7 @@ fun ResultsScreen(
             value = emailText,
             onValueChange = { emailText = it },
             label = { Text(text = stringResource(id = R.string.results_email_recipient)) },
+            isError = emailText.isBlank(),
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -122,6 +125,7 @@ fun ResultsScreen(
 
         Button(
             onClick = { sendEmail(context, emailText, emailSubject, logText, chooserTitle) },
+            enabled = emailText.isNotBlank(),
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(stringResource(id = R.string.results_btn_send))
