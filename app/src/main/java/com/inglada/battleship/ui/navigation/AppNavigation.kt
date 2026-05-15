@@ -1,6 +1,8 @@
 package com.inglada.battleship.ui.navigation
 
+import android.app.Activity
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -61,20 +63,27 @@ sealed class AppScreens(val route: String) {
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    val context = LocalContext.current
 
     NavHost(
         navController = navController,
         startDestination = AppScreens.MainMenu.route
     ) {
         composable(route = AppScreens.MainMenu.route) {
-            MainMenuScreen(navController = navController)
+            MainMenuScreen(
+                onStartGame = { navController.navigate(AppScreens.Configuration.route) },
+                onHelp = { navController.navigate(AppScreens.Help.route) },
+                onExit = { (context as? Activity)?.finish() }
+            )
         }
 
         composable(route = AppScreens.Configuration.route) {
             ConfigScreen(
                 onBackClicked = { navController.popBackStack() },
                 onStartGameClicked = { playerName, gridSize, isTimeEnabled, timeLimit, isHardMode ->
-                    navController.navigate(AppScreens.Game.createRoute(playerName, gridSize, isTimeEnabled, timeLimit, isHardMode))
+                    navController.navigate(
+                        AppScreens.Game.createRoute(playerName, gridSize, isTimeEnabled, timeLimit, isHardMode)
+                    )
                 }
             )
         }
@@ -96,12 +105,18 @@ fun AppNavigation() {
             val isHardMode = backStackEntry.arguments?.getBoolean("isHardMode") ?: false
 
             GameScreen(
-                navController = navController,
                 playerName = playerName,
                 gridSize = gridSize,
                 isTimeEnabled = isTimeEnabled,
                 timeLimit = timeLimit,
-                isHardMode = isHardMode
+                isHardMode = isHardMode,
+                onNavigateToResults = { pName, size, win, timeout, time, hard ->
+                    navController.navigate(
+                        AppScreens.Results.createRoute(pName, size, win, timeout, time, hard)
+                    ) {
+                        popUpTo(AppScreens.Game.route) { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -124,18 +139,23 @@ fun AppNavigation() {
             val isHardMode = backStackEntry.arguments?.getBoolean("isHardMode") ?: false
 
             ResultsScreen(
-                navController = navController,
                 playerName = playerName,
                 gridSize = gridSize,
                 didWin = didWin,
                 isTimeOut = isTimeOut,
                 timeSpent = timeSpent,
-                isHardMode = isHardMode
+                isHardMode = isHardMode,
+                onPlayAgain = {
+                    navController.navigate(AppScreens.Configuration.route) {
+                        popUpTo(AppScreens.MainMenu.route)
+                    }
+                },
+                onExit = { (context as? Activity)?.finish() }
             )
         }
 
         composable(route = AppScreens.Help.route) {
-            HelpScreen(navController = navController)
+            HelpScreen(onBack = { navController.popBackStack() })
         }
     }
 }

@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.inglada.battleship.ui.navigation.AppScreens
 import com.inglada.battleship.R
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -27,23 +26,25 @@ import java.util.Locale
  * Displays the outcome of the match and allows the user to export the game log via email,
  * play again, or exit the application.
  *
- * @param navController Controller to handle navigation.
  * @param playerName Alias of the player.
  * @param gridSize Dimensions of the game grid.
  * @param didWin Whether the player won the match.
  * @param isTimeOut Whether the game ended due to a timeout.
  * @param timeSpent Total time spent in the match in seconds.
  * @param isHardMode Whether the game was played in hard difficulty mode.
+ * @param onPlayAgain Callback to navigate back to the configuration screen for a new match.
+ * @param onExit Callback to close the application.
  */
 @Composable
 fun ResultsScreen(
-    navController: androidx.navigation.NavController,
     playerName: String,
     gridSize: Int,
     didWin: Boolean,
     isTimeOut: Boolean,
     timeSpent: Int,
-    isHardMode: Boolean
+    isHardMode: Boolean,
+    onPlayAgain: () -> Unit,
+    onExit: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -136,20 +137,14 @@ fun ResultsScreen(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Button(
-                onClick = {
-                    navController.navigate(AppScreens.Configuration.route) {
-                        popUpTo(AppScreens.MainMenu.route)
-                    }
-                },
+                onClick = onPlayAgain,
                 modifier = Modifier.weight(1f)
             ) {
                 Text(stringResource(id = R.string.results_btn_play_again))
             }
 
             OutlinedButton(
-                onClick = {
-                    (context as? Activity)?.finish()
-                },
+                onClick = onExit,
                 modifier = Modifier.weight(1f)
             ) {
                 Text(stringResource(id = R.string.menu_btn_exit))
@@ -181,9 +176,9 @@ private fun sendEmail(
         putExtra(Intent.EXTRA_TEXT, logContent)
     }
 
-    if (intent.resolveActivity(context.packageManager) != null) {
-        context.startActivity(intent)
-    } else {
+    try {
         context.startActivity(Intent.createChooser(intent, chooserTitle))
+    } catch (e: Exception) {
+        // Handle case where no email app is available
     }
 }

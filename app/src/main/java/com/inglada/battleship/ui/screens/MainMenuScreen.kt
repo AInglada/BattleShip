@@ -13,21 +13,23 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import com.inglada.battleship.R
-import com.inglada.battleship.ui.navigation.AppScreens
 
 /**
  * Composable that represents the main menu screen of the application.
  *
  * Provides options to start a new game, view instructions, or exit the application.
  *
- * @param navController Controller to handle navigation to other screens.
+ * @param onStartGame Callback to navigate to the configuration screen.
+ * @param onHelp Callback to navigate to the help screen.
+ * @param onExit Callback to close the application.
  */
 @Composable
-fun MainMenuScreen(navController: NavController) {
-    val activity = LocalContext.current as? Activity
-
+fun MainMenuScreen(
+    onStartGame: () -> Unit,
+    onHelp: () -> Unit,
+    onExit: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -44,7 +46,7 @@ fun MainMenuScreen(navController: NavController) {
         )
 
         Button(
-            onClick = { navController.navigate(AppScreens.Configuration.route) },
+            onClick = onStartGame,
             modifier = Modifier
                 .fillMaxWidth(0.6f)
                 .padding(bottom = 16.dp)
@@ -53,7 +55,7 @@ fun MainMenuScreen(navController: NavController) {
         }
 
         Button(
-            onClick = { navController.navigate(AppScreens.Help.route) },
+            onClick = onHelp,
             modifier = Modifier
                 .fillMaxWidth(0.6f)
                 .padding(bottom = 16.dp)
@@ -62,7 +64,7 @@ fun MainMenuScreen(navController: NavController) {
         }
 
         Button(
-            onClick = { activity?.finish() },
+            onClick = onExit,
             modifier = Modifier.fillMaxWidth(0.6f)
         ) {
             Text(text = stringResource(id = R.string.menu_btn_exit))

@@ -11,7 +11,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import com.inglada.battleship.R
 
 /**
@@ -19,10 +18,10 @@ import com.inglada.battleship.R
  *
  * Displays information on how to play the game and the different difficulty modes.
  *
- * @param navController Controller to handle navigation back to the main menu.
+ * @param onBack Callback to navigate back to the previous screen.
  */
 @Composable
-fun HelpScreen(navController: NavController) {
+fun HelpScreen(onBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -47,7 +46,7 @@ fun HelpScreen(navController: NavController) {
         Spacer(modifier = Modifier.weight(1f))
 
         Button(
-            onClick = { navController.popBackStack() },
+            onClick = onBack,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(text = stringResource(id = R.string.help_btn_back))

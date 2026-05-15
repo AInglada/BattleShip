@@ -2,14 +2,16 @@ package com.inglada.battleship.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.inglada.battleship.model.Cell
+import com.inglada.battleship.model.Board
 import com.inglada.battleship.model.CellState
 import com.inglada.battleship.model.Position
 import com.inglada.battleship.model.Ship
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlin.random.Random
@@ -34,13 +36,17 @@ class GameViewModel : ViewModel() {
 
     // --- State Properties ---
 
-    private val _playerBoardState = MutableStateFlow<List<List<Cell>>>(emptyList())
+    private val _playerBoard = MutableStateFlow(Board())
     /** The current state of the player's board. */
-    val playerBoardState: StateFlow<List<List<Cell>>> = _playerBoardState.asStateFlow()
+    val playerBoard: StateFlow<Board> = _playerBoard.asStateFlow()
 
-    private val _enemyBoardState = MutableStateFlow<List<List<Cell>>>(emptyList())
+    private val _enemyBoard = MutableStateFlow(Board())
     /** The current state of the enemy's board from the player's perspective. */
-    val enemyBoardState: StateFlow<List<List<Cell>>> = _enemyBoardState.asStateFlow()
+    val enemyBoard: StateFlow<Board> = _enemyBoard.asStateFlow()
+
+    private val _events = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    /** One-shot events for UI feedback, such as validation errors. */
+    val events = _events.asSharedFlow()
 
     private val _timeLeft = MutableStateFlow(0)
     /** Remaining time for the current turn in seconds. */
@@ -116,12 +122,10 @@ class GameViewModel : ViewModel() {
             _timeLeft.value = timeLimit
         }
 
-        val emptyBoard = List(size) { row ->
-            List(size) { col -> Cell(position = Position(row, col)) }
-        }
+        val emptyBoard = Board.createEmpty(size)
 
-        _playerBoardState.value = emptyBoard
-        _enemyBoardState.value = emptyBoard
+        _playerBoard.value = emptyBoard
+        _enemyBoard.value = emptyBoard
         _gamePhase.value = GamePhase.SETUP
         _currentShipSizeToPlace.value = shipsToPlaceSizes[0]
 
@@ -146,11 +150,7 @@ class GameViewModel : ViewModel() {
         _currentShipSizeToPlace.value = shipsToPlaceSizes[0]
         _isHorizontal.value = true
 
-        val emptyBoard = List(size) { row ->
-            List(size) { col -> Cell(position = Position(row, col)) }
-        }
-
-        _playerBoardState.value = emptyBoard
+        _playerBoard.value = Board.createEmpty(size)
     }
 
     /**
@@ -192,41 +192,18 @@ class GameViewModel : ViewModel() {
 
         val shipSize = shipsToPlaceSizes[_currentShipIndex.value]
         val horizontal = _isHorizontal.value
-        val board = _playerBoardState.value
-        val boardSize = board.size
+        val board = _playerBoard.value
 
-        if ((horizontal && startPos.col + shipSize > boardSize) || (!horizontal && startPos.row + shipSize > boardSize)) return
-
-        var isValidPlacement = true
-        val shipPositions = mutableListOf<Position>()
-
-        for (i in 0 until shipSize) {
-            val row = if (horizontal) startPos.row else startPos.row + i
-            val col = if (horizontal) startPos.col + i else startPos.col
-
-            for (r in (row - 1)..(row + 1)) {
-                for (c in (col - 1)..(col + 1)) {
-                    if (r in 0 until boardSize && c in 0 until boardSize) {
-                        if (board[r][c].hasShip) {
-                            isValidPlacement = false
-                        }
-                    }
-                }
+        if (board.canPlaceShip(startPos, shipSize, horizontal)) {
+            val updatedBoard = board.placeShip(startPos, shipSize, horizontal)
+            
+            val shipPositions = (0 until shipSize).map { i ->
+                val row = if (horizontal) startPos.row else startPos.row + i
+                val col = if (horizontal) startPos.col + i else startPos.col
+                Position(row, col)
             }
-
-            if (!isValidPlacement) break
-            shipPositions.add(Position(row, col))
-        }
-
-        if (isValidPlacement) {
-            val newBoard = board.map { row ->
-                row.map { cell ->
-                    if (shipPositions.contains(cell.position)) cell.copy(hasShip = true) else cell
-                }
-            }
-
             playerShips.add(Ship(shipSize, shipPositions))
-            _playerBoardState.value = newBoard
+            _playerBoard.value = updatedBoard
 
             val nextIndex = _currentShipIndex.value + 1
             if (nextIndex < shipsToPlaceSizes.size) {
@@ -235,18 +212,22 @@ class GameViewModel : ViewModel() {
             } else {
                 startGameplay()
             }
+        } else {
+            viewModelScope.launch {
+                _events.emit("Invalid placement: Ships cannot overlap or touch diagonally")
+            }
         }
     }
 
     private fun startGameplay() {
         _gamePhase.value = GamePhase.PLAYING
-        placeEnemyShipsRandomly(_enemyBoardState.value.size)
-        updateEnemyFleetStatus(_enemyBoardState.value)
+        placeEnemyShipsRandomly(_enemyBoard.value.size)
+        updateEnemyFleetStatus(_enemyBoard.value)
         startTimer()
     }
 
     private fun placeEnemyShipsRandomly(boardSize: Int) {
-        val tempBoard = _enemyBoardState.value.map { it.toMutableList() }.toMutableList()
+        var tempBoard = Board.createEmpty(boardSize)
 
         for (shipSize in shipsToPlaceSizes) {
             var isPlaced = false
@@ -257,57 +238,37 @@ class GameViewModel : ViewModel() {
                 val isHorizontal = Random.nextBoolean()
                 val startRow = Random.nextInt(boardSize)
                 val startCol = Random.nextInt(boardSize)
+                val startPos = Position(startRow, startCol)
 
-                if (isHorizontal && startCol + shipSize > boardSize) continue
-                if (!isHorizontal && startRow + shipSize > boardSize) continue
-
-                var isValid = true
-                val shipPositions = mutableListOf<Position>()
-
-                for (i in 0 until shipSize) {
-                    val row = if (isHorizontal) startRow else startRow + i
-                    val col = if (isHorizontal) startCol + i else startCol
-
-                    for (r in (row - 1)..(row + 1)) {
-                        for (c in (col - 1)..(col + 1)) {
-                            if (r in 0 until boardSize && c in 0 until boardSize) {
-                                if (tempBoard[r][c].hasShip) isValid = false
-                            }
-                        }
-                    }
-                    if (!isValid) break
-                    shipPositions.add(Position(row, col))
-                }
-
-                if (isValid) {
-                    shipPositions.forEach { pos ->
-                        tempBoard[pos.row][pos.col] = tempBoard[pos.row][pos.col].copy(hasShip = true)
+                if (tempBoard.canPlaceShip(startPos, shipSize, isHorizontal)) {
+                    tempBoard = tempBoard.placeShip(startPos, shipSize, isHorizontal)
+                    
+                    val shipPositions = (0 until shipSize).map { i ->
+                        val row = if (isHorizontal) startRow else startRow + i
+                        val col = if (isHorizontal) startCol + i else startCol
+                        Position(row, col)
                     }
                     enemyShips.add(Ship(shipSize, shipPositions))
                     isPlaced = true
                 }
             }
         }
-        _enemyBoardState.value = tempBoard
+        _enemyBoard.value = tempBoard
     }
 
     private fun performPlayerAttack(position: Position) {
-        val currentBoard = _enemyBoardState.value
-        val clickedCell = currentBoard[position.row][position.col]
+        val currentBoard = _enemyBoard.value
+        val clickedCell = currentBoard.getCell(position)
 
         if (clickedCell.state != CellState.HIDDEN) return
 
         val newState = if (clickedCell.hasShip) CellState.HIT else CellState.MISS
-        val newBoard = currentBoard.map { row ->
-            row.map { cell ->
-                if (cell.position == position) cell.copy(state = newState) else cell
-            }
-        }
+        val updatedBoard = currentBoard.updateCell(position, newState)
 
-        _enemyBoardState.value = newBoard
-        updateEnemyFleetStatus(newBoard)
+        _enemyBoard.value = updatedBoard
+        updateEnemyFleetStatus(updatedBoard)
 
-        val playerWon = enemyShips.all { ship -> ship.isSunk(newBoard) }
+        val playerWon = enemyShips.all { ship -> ship.isSunk(updatedBoard.grid) }
         if (playerWon) {
             endGame(won = true)
         } else {
@@ -323,14 +284,14 @@ class GameViewModel : ViewModel() {
     private fun performAIAttack() {
         if (_gamePhase.value != GamePhase.PLAYING || _isGameOver.value) return
 
-        val board = _playerBoardState.value
+        val board = _playerBoard.value
         val size = board.size
         var target: Position? = null
 
         if (isHardMode && aiTargetQueue.isNotEmpty()) {
             while (aiTargetQueue.isNotEmpty() && target == null) {
                 val candidate = aiTargetQueue.removeAt(0)
-                if (board[candidate.row][candidate.col].state == CellState.HIDDEN) {
+                if (board.getCell(candidate).state == CellState.HIDDEN) {
                     target = candidate
                 }
             }
@@ -338,7 +299,7 @@ class GameViewModel : ViewModel() {
 
         if (target == null) {
             val hiddenCells = mutableListOf<Position>()
-            board.forEach { row ->
+            board.grid.forEach { row ->
                 row.forEach { cell ->
                     if (cell.state == CellState.HIDDEN) hiddenCells.add(cell.position)
                 }
@@ -350,15 +311,11 @@ class GameViewModel : ViewModel() {
             }
         }
 
-        val clickedCell = board[target.row][target.col]
+        val clickedCell = board.getCell(target)
         val newState = if (clickedCell.hasShip) CellState.HIT else CellState.MISS
 
-        val newBoard = board.map { row ->
-            row.map { cell ->
-                if (cell.position == target) cell.copy(state = newState) else cell
-            }
-        }
-        _playerBoardState.value = newBoard
+        val updatedBoard = board.updateCell(target, newState)
+        _playerBoard.value = updatedBoard
 
         if (newState == CellState.HIT && isHardMode) {
             val adj = listOf(
@@ -371,7 +328,7 @@ class GameViewModel : ViewModel() {
             aiTargetQueue.addAll(adj)
         }
 
-        val aiWon = playerShips.all { it.isSunk(newBoard) }
+        val aiWon = playerShips.all { it.isSunk(updatedBoard.grid) }
         if (aiWon) {
             endGame(won = false)
         } else {
@@ -379,9 +336,9 @@ class GameViewModel : ViewModel() {
         }
     }
 
-    private fun updateEnemyFleetStatus(board: List<List<Cell>>) {
+    private fun updateEnemyFleetStatus(board: Board) {
         _enemyFleetStatus.value = enemyShips.map { ship ->
-            Pair(ship.size, ship.isSunk(board))
+            Pair(ship.size, ship.isSunk(board.grid))
         }.sortedByDescending { it.first }
     }
 
