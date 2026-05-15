@@ -5,7 +5,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -14,7 +13,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.inglada.battleship.data.BattleshipDatabase
-import com.inglada.battleship.data.GameMatchEntity
 import com.inglada.battleship.data.MatchRepository
 import com.inglada.battleship.data.UserPreferencesRepository
 import com.inglada.battleship.data.dataStore
@@ -26,12 +24,12 @@ import com.inglada.battleship.ui.screens.MainMenuScreen
 import com.inglada.battleship.ui.screens.ResultsScreen
 import com.inglada.battleship.viewmodel.ConfigViewModel
 import com.inglada.battleship.viewmodel.ConfigViewModelFactory
+import com.inglada.battleship.viewmodel.GameViewModel
+import com.inglada.battleship.viewmodel.GameViewModelFactory
 import com.inglada.battleship.viewmodel.HistoryViewModel
 import com.inglada.battleship.viewmodel.HistoryViewModelFactory
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.util.Date
 
 /**
  * Defines the unique routes and navigation arguments for each screen in the application.
@@ -83,7 +81,6 @@ fun AppNavigation() {
         }
     }
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
     // Initialize the DataStore repository singleton
     val preferencesRepository = remember { UserPreferencesRepository(context.dataStore) }
@@ -151,38 +148,25 @@ fun AppNavigation() {
             val timeLimit = backStackEntry.arguments?.getInt("timeLimit") ?: 0
             val isHardMode = backStackEntry.arguments?.getBoolean("isHardMode") ?: false
 
+            val gameViewModel: GameViewModel = viewModel(
+                factory = GameViewModelFactory(matchRepository)
+            )
+
             GameScreen(
                 playerName = playerName,
                 gridSize = gridSize,
                 isTimeEnabled = isTimeEnabled,
                 timeLimit = timeLimit,
                 isHardMode = isHardMode,
-                onNavigateToResults = { pName, size, win, timeout, time, hard, logs ->
-
-                    val finalOutcome = when {
-                        win -> "Victory"
-                        timeout -> "Defeat (Timeout)"
-                        else -> "Defeat (AI)"
-                    }
-                    val matchEntity = GameMatchEntity(
-                        playerName = pName,
-                        timestamp = Date().time,
-                        gridSize = size,
-                        timeSpent = time,
-                        outcome = finalOutcome,
-                        moveLogs = logs
-                    )
-                    coroutineScope.launch {
-                        matchRepository.insertMatch(matchEntity)
-                    }
-
+                onNavigateToResults = { pName, size, win, timeout, time, hard, _ ->
                     navController.navigate(
                         AppScreens.Results.createRoute(pName, size, win, timeout, time, hard)
                     ) {
                         popUpTo(AppScreens.MainMenu.route)
                     }
                 },
-                onAbandonGame = { safePopBackStack() }
+                onAbandonGame = { safePopBackStack() },
+                viewModel = gameViewModel
             )
         }
 

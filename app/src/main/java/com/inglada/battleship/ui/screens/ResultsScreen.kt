@@ -1,6 +1,5 @@
 package com.inglada.battleship.ui.screens
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -94,7 +93,10 @@ fun ResultsScreen(
                 title = { Text(stringResource(id = R.string.results_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBackToMenu) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Menu")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack, 
+                            contentDescription = stringResource(id = R.string.cd_back_to_menu)
+                        )
                     }
                 }
             )

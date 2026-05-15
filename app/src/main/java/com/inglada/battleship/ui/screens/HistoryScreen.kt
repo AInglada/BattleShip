@@ -58,7 +58,10 @@ fun HistoryScreen(
                 title = { Text(stringResource(id = R.string.menu_btn_history)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClicked) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack, 
+                            contentDescription = stringResource(id = R.string.cd_back)
+                        )
                     }
                 }
             )
@@ -93,7 +96,7 @@ fun HistoryScreen(
                             Text(
                                 text = stringResource(id = R.string.history_empty_detail),
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = Color.Gray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -105,6 +108,9 @@ fun HistoryScreen(
 
 /**
  * Composable representing the list pane of the adaptive layout.
+ *
+ * @param matches The list of game matches to display.
+ * @param onMatchSelected Callback triggered when a match is clicked.
  */
 @Composable
 private fun MatchListPane(
@@ -132,15 +138,21 @@ private fun MatchListPane(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
+                        val outcomeVictory = stringResource(id = R.string.history_outcome_victory)
+                        val isVictory = match.outcome == outcomeVictory
                         Text(
                             text = "${match.outcome} - ${match.playerName}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = if (match.outcome == "Victory") Color(0xFF2E7D32) else Color(0xFFC62828)
+                            color = if (isVictory) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         val dateText = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()).format(Date(match.timestamp))
-                        Text(text = dateText, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                        Text(
+                            text = dateText, 
+                            style = MaterialTheme.typography.bodySmall, 
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
@@ -150,6 +162,8 @@ private fun MatchListPane(
 
 /**
  * Composable representing the detailed view of a selected match, including its complete move log.
+ *
+ * @param match The entity containing all information about the selected match.
  */
 @Composable
 private fun MatchDetailPane(match: GameMatchEntity) {
@@ -211,7 +225,7 @@ private fun MatchDetailPane(match: GameMatchEntity) {
                     Text(
                         text = stringResource(id = R.string.history_log_empty),
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
@@ -223,6 +237,12 @@ private fun MatchDetailPane(match: GameMatchEntity) {
     }
 }
 
+/**
+ * A simple row displaying a label and a value for match summary.
+ *
+ * @param label The descriptive label.
+ * @param value The value to display.
+ */
 @Composable
 private fun DetailRow(label: String, value: String) {
     Row(
@@ -236,13 +256,18 @@ private fun DetailRow(label: String, value: String) {
 
 /**
  * Visual representation of a single move in the log history.
+ *
+ * @param log The move data to display.
  */
 @Composable
 private fun MoveLogItem(log: MoveLog) {
     val actorPlayer = stringResource(id = R.string.history_log_actor_player)
     val actorAI = stringResource(id = R.string.history_log_actor_ai)
     val actor = if (log.isPlayer) actorPlayer else actorAI
-    val resultColor = if (log.result == "Hit") Color(0xFF2E7D32) else Color.DarkGray
+    
+    val hitText = stringResource(id = R.string.move_result_hit)
+    val isHit = log.result == hitText
+    val resultColor = if (isHit) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
     Row(
         modifier = Modifier
@@ -261,7 +286,7 @@ private fun MoveLogItem(log: MoveLog) {
                 Text(
                     text = stringResource(id = R.string.history_log_time_remaining, log.timeRemaining),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

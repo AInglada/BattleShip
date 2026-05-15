@@ -67,7 +67,10 @@ fun ConfigScreen(
     ) {
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
             IconButton(onClick = onBackClicked) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack, 
+                    contentDescription = stringResource(id = R.string.cd_back)
+                )
             }
         }
 

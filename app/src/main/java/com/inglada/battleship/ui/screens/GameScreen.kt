@@ -5,13 +5,48 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,12 +55,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.inglada.battleship.model.Board
+import com.inglada.battleship.R
 import com.inglada.battleship.model.Cell
 import com.inglada.battleship.model.CellState
+import com.inglada.battleship.model.MoveLog
 import com.inglada.battleship.viewmodel.GamePhase
 import com.inglada.battleship.viewmodel.GameViewModel
-import com.inglada.battleship.R
 import kotlinx.coroutines.flow.collectLatest
 
 /**
@@ -33,7 +68,8 @@ import kotlinx.coroutines.flow.collectLatest
  *
  * It manages the setup and playing phases of the Battleship match, observing the
  * [GameViewModel] for state updates and handling user interactions with the boards.
- * Includes exit confirmation dialogs to prevent accidental progress loss.
+ * Includes exit confirmation dialogs to prevent accidental progress loss and a live
+ * log for tablet layouts.
  *
  * @param playerName Alias of the player.
  * @param gridSize Dimensions of the game grid.
@@ -52,11 +88,10 @@ fun GameScreen(
     isTimeEnabled: Boolean,
     timeLimit: Int,
     isHardMode: Boolean,
-    onNavigateToResults: (String, Int, Boolean, Boolean, Int, Boolean, List<com.inglada.battleship.model.MoveLog>) -> Unit,
+    onNavigateToResults: (String, Int, Boolean, Boolean, Int, Boolean, List<MoveLog>) -> Unit,
     onAbandonGame: () -> Unit,
     viewModel: GameViewModel = viewModel()
 ) {
-    val moveLogs by viewModel.moveLogs.collectAsState()
     val playerBoardObj by viewModel.playerBoard.collectAsState()
     val enemyBoardObj by viewModel.enemyBoard.collectAsState()
 
@@ -73,12 +108,12 @@ fun GameScreen(
     val currentShipSize by viewModel.currentShipSizeToPlace.collectAsState()
     val isHorizontal by viewModel.isHorizontal.collectAsState()
 
+    val moveLogs by viewModel.moveLogs.collectAsState()
+
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // State for the exit confirmation dialog
     var showExitDialog by remember { mutableStateOf(false) }
 
-    // Intercept hardware back button
     BackHandler {
         showExitDialog = true
     }
@@ -110,8 +145,8 @@ fun GameScreen(
     if (showExitDialog) {
         AlertDialog(
             onDismissRequest = { showExitDialog = false },
-            title = { Text("Abandon Match?") },
-            text = { Text("Are you sure you want to leave? All current progress will be lost.") },
+            title = { Text(text = stringResource(id = R.string.game_abandon_title)) },
+            text = { Text(text = stringResource(id = R.string.game_abandon_text)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -119,11 +154,16 @@ fun GameScreen(
                         onAbandonGame()
                     }
                 ) {
-                    Text("Abandon", color = MaterialTheme.colorScheme.error)
+                    Text(
+                        text = stringResource(id = R.string.game_abandon_confirm),
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showExitDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showExitDialog = false }) {
+                    Text(text = stringResource(id = R.string.game_abandon_cancel))
+                }
             }
         )
     }
@@ -143,7 +183,7 @@ fun GameScreen(
                 Text(
                     text = stringResource(id = R.string.game_time_seconds, dynamicTimeLeft),
                     style = MaterialTheme.typography.titleLarge,
-                    color = Color.Red
+                    color = MaterialTheme.colorScheme.error
                 )
             } else {
                 Text(
@@ -179,13 +219,16 @@ fun GameScreen(
                                     modifier = Modifier
                                         .size(12.dp)
                                         .padding(1.dp)
-                                        .background(if (isSunk) Color.Red else Color.DarkGray)
+                                        .background(
+                                            if (isSunk) MaterialTheme.colorScheme.error 
+                                            else MaterialTheme.colorScheme.outline
+                                        )
                                 )
                             }
                         }
                         Text(
                             text = stringResource(id = if (isSunk) R.string.game_hud_sunk else R.string.game_hud_alive),
-                            color = if (isSunk) Color.Red else Color.Green,
+                            color = if (isSunk) MaterialTheme.colorScheme.error else Color.Green, // Green is standard for "Alive"
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -200,10 +243,13 @@ fun GameScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { }, // Empty title to save space for the game HUD
+                title = { },
                 navigationIcon = {
                     IconButton(onClick = { showExitDialog = true }) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Exit Game")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(id = R.string.cd_exit_game)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -218,6 +264,7 @@ fun GameScreen(
                 .padding(horizontal = 16.dp)
         ) {
             if (isPortrait) {
+                // PORTRAIT LAYOUT (SMARTPHONES)
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -239,6 +286,7 @@ fun GameScreen(
                                 onResetClick = { viewModel.resetPlacement(gridSize) }
                             )
                         }
+
                         GamePhase.PLAYING -> {
                             PlayingPhaseUI(
                                 gridSize = gridSize,
@@ -248,10 +296,12 @@ fun GameScreen(
                                 onCellClick = { viewModel.onCellClicked(it) }
                             )
                         }
+
                         else -> {}
                     }
                 }
             } else {
+                // LANDSCAPE / TABLET LAYOUT
                 Row(
                     modifier = Modifier.fillMaxSize(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -259,20 +309,31 @@ fun GameScreen(
                     Column(
                         modifier = Modifier
                             .weight(0.4f)
-                            .verticalScroll(rememberScrollState())
+                            .fillMaxHeight()
                     ) {
                         headerContent()
                         if (gamePhase == GamePhase.PLAYING) fleetStatusContent()
 
                         if (gamePhase == GamePhase.SETUP) {
-                            SetupControls(
-                                currentShipSize = currentShipSize,
-                                isHorizontal = isHorizontal,
-                                onRotateClick = { viewModel.toggleOrientation() },
-                                onResetClick = { viewModel.resetPlacement(gridSize) }
-                            )
+                            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                                SetupControls(
+                                    currentShipSize = currentShipSize,
+                                    isHorizontal = isHorizontal,
+                                    onRotateClick = { viewModel.toggleOrientation() },
+                                    onResetClick = { viewModel.resetPlacement(gridSize) }
+                                )
+                            }
                         } else if (gamePhase == GamePhase.PLAYING) {
                             TurnIndicator(isPlayerTurn = isPlayerTurn)
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Text(
+                                text = stringResource(id = R.string.game_live_log),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            LiveLogList(logs = moveLogs, modifier = Modifier.weight(1f))
                         }
                     }
 
@@ -291,6 +352,7 @@ fun GameScreen(
                                     showShips = true
                                 )
                             }
+
                             GamePhase.PLAYING -> {
                                 Column(
                                     modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -314,6 +376,7 @@ fun GameScreen(
                                     )
                                 }
                             }
+
                             else -> {}
                         }
                     }
@@ -323,6 +386,17 @@ fun GameScreen(
     }
 }
 
+/**
+ * UI for the ship placement phase.
+ *
+ * @param gridSize The size of the board.
+ * @param playerBoard The list of cells representing the player's board.
+ * @param currentShipSize The size of the ship currently being placed.
+ * @param isHorizontal The current orientation for ship placement.
+ * @param onCellClick Callback for when a board cell is clicked.
+ * @param onRotateClick Callback for rotating the ship orientation.
+ * @param onResetClick Callback for resetting all ship placements.
+ */
 @Composable
 fun SetupPhaseUI(
     gridSize: Int,
@@ -340,6 +414,14 @@ fun SetupPhaseUI(
     }
 }
 
+/**
+ * Controls for the setup phase, including rotation and reset buttons.
+ *
+ * @param currentShipSize The size of the ship currently being placed.
+ * @param isHorizontal The current orientation for ship placement.
+ * @param onRotateClick Callback for rotating the ship orientation.
+ * @param onResetClick Callback for resetting all ship placements.
+ */
 @Composable
 fun SetupControls(
     currentShipSize: Int,
@@ -368,6 +450,15 @@ fun SetupControls(
     }
 }
 
+/**
+ * UI for the active playing phase, showing both boards.
+ *
+ * @param gridSize The size of the board.
+ * @param playerBoard The player's current board state.
+ * @param enemyBoard The enemy's current board state.
+ * @param isPlayerTurn Whether it is currently the player's turn.
+ * @param onCellClick Callback for when a cell on the enemy board is clicked.
+ */
 @Composable
 fun PlayingPhaseUI(
     gridSize: Int,
@@ -387,6 +478,11 @@ fun PlayingPhaseUI(
     }
 }
 
+/**
+ * Displays whose turn it currently is.
+ *
+ * @param isPlayerTurn True if it's the player's turn, false otherwise.
+ */
 @Composable
 fun TurnIndicator(isPlayerTurn: Boolean) {
     val turnText = if (isPlayerTurn) {
@@ -398,10 +494,18 @@ fun TurnIndicator(isPlayerTurn: Boolean) {
         text = turnText,
         style = MaterialTheme.typography.headlineSmall,
         fontWeight = FontWeight.Bold,
-        color = if (isPlayerTurn) MaterialTheme.colorScheme.primary else Color.Gray
+        color = if (isPlayerTurn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
     )
 }
 
+/**
+ * Generic board grid component.
+ *
+ * @param size The dimensions of the grid.
+ * @param board The data representing the cells.
+ * @param onCellClick Callback for cell interaction.
+ * @param showShips Whether to reveal hidden ships on this board.
+ */
 @Composable
 fun GridBoard(
     size: Int,
@@ -418,14 +522,18 @@ fun GridBoard(
             .padding(4.dp)
     ) {
         for (row in 0 until size) {
-            Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            Row(modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()) {
                 for (col in 0 until size) {
                     val cell = board[row][col]
                     CellUI(
                         cell = cell,
                         onCellClick = onCellClick,
                         showShips = showShips,
-                        modifier = Modifier.weight(1f).fillMaxHeight()
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
                     )
                 }
             }
@@ -433,6 +541,14 @@ fun GridBoard(
     }
 }
 
+/**
+ * Individual cell component.
+ *
+ * @param cell The cell data.
+ * @param onCellClick Callback for clicking the cell.
+ * @param showShips Whether ships are visible in this view.
+ * @param modifier Modifier for styling.
+ */
 @Composable
 fun CellUI(
     cell: Cell,
@@ -441,9 +557,9 @@ fun CellUI(
     modifier: Modifier = Modifier
 ) {
     val backgroundColor = when (cell.state) {
-        CellState.HIT -> Color.Red
-        CellState.MISS -> Color.Gray
-        CellState.HIDDEN -> if (showShips && cell.hasShip) Color.Blue else Color.LightGray
+        CellState.HIT -> MaterialTheme.colorScheme.error
+        CellState.MISS -> MaterialTheme.colorScheme.outline
+        CellState.HIDDEN -> if (showShips && cell.hasShip) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
     }
 
     Box(
@@ -457,8 +573,71 @@ fun CellUI(
             Text(
                 text = stringResource(id = R.string.game_hud_cheatShipPlacement),
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onPrimary
             )
+        }
+    }
+}
+
+/**
+ * Compact live log list designed for the tablet side panel.
+ * Automatically scrolls to the bottom when a new move is logged.
+ *
+ * @param logs List of moves made in the game.
+ * @param modifier Modifier for the container.
+ */
+@Composable
+fun LiveLogList(logs: List<MoveLog>, modifier: Modifier = Modifier) {
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(logs.size) {
+        if (logs.isNotEmpty()) {
+            listState.animateScrollToItem(logs.size - 1)
+        }
+    }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(logs) { log ->
+                val actorPlayer = stringResource(id = R.string.history_log_actor_player)
+                val actorAI = stringResource(id = R.string.history_log_actor_ai)
+                val actor = if (log.isPlayer) actorPlayer else actorAI
+                
+                val hitText = stringResource(id = R.string.move_result_hit)
+                val isHit = log.result == hitText
+                val resultColor = if (isHit) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "$actor: (${log.row}, ${log.col})",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = log.result.uppercase(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = resultColor
+                    )
+                }
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
     }
 }

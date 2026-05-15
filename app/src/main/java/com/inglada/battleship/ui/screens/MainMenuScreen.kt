@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.inglada.battleship.R
 import com.inglada.battleship.data.UserPreferencesRepository
 
@@ -47,7 +46,7 @@ fun MainMenuScreen(
     onExit: () -> Unit
 ) {
     // Read the current state of preferences to inject into the game when "Start" is clicked
-    val playerName by repository.playerName.collectAsState(initial = "Commander")
+    val playerName by repository.playerName.collectAsState(initial = stringResource(id = R.string.config_default_player))
     val gridSize by repository.gridSize.collectAsState(initial = 8)
     val isTimeEnabled by repository.isTimeEnabled.collectAsState(initial = false)
     val timeLimit by repository.timeLimit.collectAsState(initial = 60)
@@ -61,7 +60,7 @@ fun MainMenuScreen(
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(
                             imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings"
+                            contentDescription = stringResource(id = R.string.cd_settings)
                         )
                     }
                 }
@@ -78,7 +77,7 @@ fun MainMenuScreen(
         ) {
             Text(
                 text = stringResource(id = R.string.menu_title),
-                fontSize = 40.sp,
+                style = MaterialTheme.typography.displayLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 48.dp)
