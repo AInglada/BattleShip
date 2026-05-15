@@ -119,7 +119,7 @@ fun GameScreen(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.initializeBoard(gridSize, isTimeEnabled, timeLimit, isHardMode)
+        viewModel.initializeBoard(playerName, gridSize, isTimeEnabled, timeLimit, isHardMode)
     }
 
     LaunchedEffect(isGameOver) {
