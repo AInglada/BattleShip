@@ -77,6 +77,11 @@ sealed class AppScreens(val route: String) {
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    val safePopBackStack: () -> Unit = {
+        if (navController.previousBackStackEntry != null) {
+            navController.popBackStack()
+        }
+    }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -112,10 +117,10 @@ fun AppNavigation() {
 
             ConfigScreen(
                 uiState = uiState,
-                onBackClicked = { navController.popBackStack() },
+                onBackClicked = { safePopBackStack() },
                 onSaveConfigClicked = { playerName, gridSize, isTimeEnabled, timeLimit, isHardMode ->
                     configViewModel.saveConfig(playerName, gridSize, isTimeEnabled, timeLimit, isHardMode)
-                    navController.popBackStack()
+                    safePopBackStack()
                 }
             )
         }
@@ -126,7 +131,7 @@ fun AppNavigation() {
             )
             HistoryScreen(
                 viewModel = historyViewModel,
-                onBackClicked = { navController.popBackStack() }
+                onBackClicked = { safePopBackStack() }
             )
         }
 
@@ -152,7 +157,7 @@ fun AppNavigation() {
                 isTimeEnabled = isTimeEnabled,
                 timeLimit = timeLimit,
                 isHardMode = isHardMode,
-                onNavigateToResults = { pName, size, win, timeout, time, hard ->
+                onNavigateToResults = { pName, size, win, timeout, time, hard, logs ->
 
                     val finalOutcome = when {
                         win -> "Victory"
@@ -164,7 +169,8 @@ fun AppNavigation() {
                         timestamp = Date().time,
                         gridSize = size,
                         timeSpent = time,
-                        outcome = finalOutcome
+                        outcome = finalOutcome,
+                        moveLogs = logs
                     )
                     coroutineScope.launch {
                         matchRepository.insertMatch(matchEntity)
@@ -175,7 +181,8 @@ fun AppNavigation() {
                     ) {
                         popUpTo(AppScreens.MainMenu.route)
                     }
-                }
+                },
+                onAbandonGame = { safePopBackStack() }
             )
         }
 
@@ -216,12 +223,13 @@ fun AppNavigation() {
                         }
                     }
                 },
+                onBackToMenu = { safePopBackStack() },
                 onExit = { (context as? Activity)?.finish() }
             )
         }
 
         composable(route = AppScreens.Help.route) {
-            HelpScreen(onBack = { navController.popBackStack() })
+            HelpScreen(onBack = { safePopBackStack() })
         }
     }
 }

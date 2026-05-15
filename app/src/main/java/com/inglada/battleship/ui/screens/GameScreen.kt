@@ -1,18 +1,17 @@
 package com.inglada.battleship.ui.screens
 
 import android.content.res.Configuration
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,6 +33,7 @@ import kotlinx.coroutines.flow.collectLatest
  *
  * It manages the setup and playing phases of the Battleship match, observing the
  * [GameViewModel] for state updates and handling user interactions with the boards.
+ * Includes exit confirmation dialogs to prevent accidental progress loss.
  *
  * @param playerName Alias of the player.
  * @param gridSize Dimensions of the game grid.
@@ -41,8 +41,10 @@ import kotlinx.coroutines.flow.collectLatest
  * @param timeLimit Duration of the time limit in seconds.
  * @param isHardMode Whether the AI uses tactical targeting.
  * @param onNavigateToResults Callback to navigate to the results screen.
+ * @param onAbandonGame Callback triggered when the user confirms they want to exit the match early.
  * @param viewModel The state management unit for the game session.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
     playerName: String,
@@ -50,9 +52,11 @@ fun GameScreen(
     isTimeEnabled: Boolean,
     timeLimit: Int,
     isHardMode: Boolean,
-    onNavigateToResults: (String, Int, Boolean, Boolean, Int, Boolean) -> Unit,
+    onNavigateToResults: (String, Int, Boolean, Boolean, Int, Boolean, List<com.inglada.battleship.model.MoveLog>) -> Unit,
+    onAbandonGame: () -> Unit,
     viewModel: GameViewModel = viewModel()
 ) {
+    val moveLogs by viewModel.moveLogs.collectAsState()
     val playerBoardObj by viewModel.playerBoard.collectAsState()
     val enemyBoardObj by viewModel.enemyBoard.collectAsState()
 
@@ -71,6 +75,14 @@ fun GameScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // State for the exit confirmation dialog
+    var showExitDialog by remember { mutableStateOf(false) }
+
+    // Intercept hardware back button
+    BackHandler {
+        showExitDialog = true
+    }
+
     LaunchedEffect(Unit) {
         viewModel.initializeBoard(gridSize, isTimeEnabled, timeLimit, isHardMode)
     }
@@ -83,7 +95,8 @@ fun GameScreen(
                 playerWon,
                 isTimeOut,
                 totalTimeSpent,
-                isHardMode
+                isHardMode,
+                moveLogs
             )
         }
     }
@@ -94,11 +107,32 @@ fun GameScreen(
         }
     }
 
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = { Text("Abandon Match?") },
+            text = { Text("Are you sure you want to leave? All current progress will be lost.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showExitDialog = false
+                        onAbandonGame()
+                    }
+                ) {
+                    Text("Abandon", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+
     val headerContent = @Composable {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 16.dp, top = 16.dp),
+                .padding(bottom = 16.dp, top = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
@@ -164,13 +198,24 @@ fun GameScreen(
     val isPortrait = screenConfig.orientation == Configuration.ORIENTATION_PORTRAIT
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { }, // Empty title to save space for the game HUD
+                navigationIcon = {
+                    IconButton(onClick = { showExitDialog = true }) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Exit Game")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+            )
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp)
         ) {
             if (isPortrait) {
                 Column(

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.inglada.battleship.model.Board
 import com.inglada.battleship.model.CellState
+import com.inglada.battleship.model.MoveLog
 import com.inglada.battleship.model.Position
 import com.inglada.battleship.model.Ship
 import kotlinx.coroutines.Job
@@ -20,76 +21,63 @@ import kotlin.random.Random
  * Defines the distinct phases of the game lifecycle.
  */
 enum class GamePhase {
-    /** The player is placing their ships on the board. */
     SETUP,
-    /** The player and AI are taking turns attacking each other. */
     PLAYING,
-    /** The game has concluded. */
     GAME_OVER
 }
 
 /**
  * ViewModel responsible for managing the game state, logic, and turn-based interactions.
- * It handles the state for both the player and enemy boards, timer logic, and AI behavior.
+ * It handles the state for both the player and enemy boards, timer logic, AI behavior, and move logging.
  */
 class GameViewModel : ViewModel() {
 
     // --- State Properties ---
 
     private val _playerBoard = MutableStateFlow(Board())
-    /** The current state of the player's board. */
     val playerBoard: StateFlow<Board> = _playerBoard.asStateFlow()
 
     private val _enemyBoard = MutableStateFlow(Board())
-    /** The current state of the enemy's board from the player's perspective. */
     val enemyBoard: StateFlow<Board> = _enemyBoard.asStateFlow()
 
     private val _events = MutableSharedFlow<String>(extraBufferCapacity = 1)
-    /** One-shot events for UI feedback, such as validation errors. */
     val events = _events.asSharedFlow()
 
     private val _timeLeft = MutableStateFlow(0)
-    /** Remaining time for the current turn in seconds. */
     val timeLeft: StateFlow<Int> = _timeLeft.asStateFlow()
 
     private val _totalTimeSpent = MutableStateFlow(0)
-    /** Total duration of the match in seconds. */
     val totalTimeSpent: StateFlow<Int> = _totalTimeSpent.asStateFlow()
 
     private val _gamePhase = MutableStateFlow(GamePhase.SETUP)
-    /** Current phase of the game. */
     val gamePhase: StateFlow<GamePhase> = _gamePhase.asStateFlow()
 
     private val _isGameOver = MutableStateFlow(false)
-    /** Whether the game has finished. */
     val isGameOver: StateFlow<Boolean> = _isGameOver.asStateFlow()
 
     private val _isTimeOut = MutableStateFlow(false)
-    /** Whether the game ended due to a time limit expiration. */
     val isTimeOut: StateFlow<Boolean> = _isTimeOut.asStateFlow()
 
     private val _playerWon = MutableStateFlow(false)
-    /** Whether the player emerged victorious. */
     val playerWon: StateFlow<Boolean> = _playerWon.asStateFlow()
 
     private val _isPlayerTurn = MutableStateFlow(true)
-    /** Whether it is currently the player's turn to act. */
     val isPlayerTurn: StateFlow<Boolean> = _isPlayerTurn.asStateFlow()
 
     private val _enemyFleetStatus = MutableStateFlow<List<Pair<Int, Boolean>>>(emptyList())
-    /** Status of the enemy fleet, represented as pairs of ship size and sunk status. */
     val enemyFleetStatus: StateFlow<List<Pair<Int, Boolean>>> = _enemyFleetStatus.asStateFlow()
 
     private val _currentShipSizeToPlace = MutableStateFlow(5)
-    /** Size of the ship currently being placed during the setup phase. */
     val currentShipSizeToPlace: StateFlow<Int> = _currentShipSizeToPlace.asStateFlow()
 
     private val _isHorizontal = MutableStateFlow(true)
-    /** Current orientation for ship placement. */
     val isHorizontal: StateFlow<Boolean> = _isHorizontal.asStateFlow()
 
-    // --- Internal Properties ---
+    private val _moveLogs = MutableStateFlow<List<MoveLog>>(emptyList())
+    /** The sequential log of all moves made during the match. */
+    val moveLogs: StateFlow<List<MoveLog>> = _moveLogs.asStateFlow()
 
+    // --- Internal Properties ---
     private val shipsToPlaceSizes = listOf(5, 4, 3, 3, 2)
     private val _currentShipIndex = MutableStateFlow(0)
     private val playerShips = mutableListOf<Ship>()
@@ -103,61 +91,32 @@ class GameViewModel : ViewModel() {
 
     // --- Public Methods ---
 
-    /**
-     * Initializes the game boards and parameters.
-     *
-     * @param size The dimensions of the square grid.
-     * @param isTimeEnabled Whether a time limit should be enforced.
-     * @param timeLimit The duration of the time limit in seconds.
-     * @param hardMode Whether the AI should use tactical targeting logic.
-     */
     fun initializeBoard(size: Int, isTimeEnabled: Boolean, timeLimit: Int, hardMode: Boolean) {
         if (isInitialized) return
-
         timeWasEnabled = isTimeEnabled
         isHardMode = hardMode
         baseTimeLimit = timeLimit
-
-        if (isTimeEnabled) {
-            _timeLeft.value = timeLimit
-        }
-
+        if (isTimeEnabled) _timeLeft.value = timeLimit
         val emptyBoard = Board.createEmpty(size)
-
         _playerBoard.value = emptyBoard
         _enemyBoard.value = emptyBoard
         _gamePhase.value = GamePhase.SETUP
         _currentShipSizeToPlace.value = shipsToPlaceSizes[0]
-
         isInitialized = true
     }
 
-    /**
-     * Toggles the orientation for ship placement between horizontal and vertical.
-     */
     fun toggleOrientation() {
         _isHorizontal.value = !_isHorizontal.value
     }
 
-    /**
-     * Resets the player's ship placements and restarts the setup phase.
-     *
-     * @param size The dimensions of the square grid.
-     */
     fun resetPlacement(size: Int) {
         playerShips.clear()
         _currentShipIndex.value = 0
         _currentShipSizeToPlace.value = shipsToPlaceSizes[0]
         _isHorizontal.value = true
-
         _playerBoard.value = Board.createEmpty(size)
     }
 
-    /**
-     * Processes a click event on a specific board cell.
-     *
-     * @param position The position of the clicked cell.
-     */
     fun onCellClicked(position: Position) {
         when (_gamePhase.value) {
             GamePhase.SETUP -> tryPlaceShipManually(position)
@@ -169,6 +128,21 @@ class GameViewModel : ViewModel() {
     }
 
     // --- Private Helper Methods ---
+
+    /**
+     * Records a move into the session log.
+     */
+    private fun logMove(isPlayer: Boolean, row: Int, col: Int, result: String) {
+        val currentTimeLeft = _timeLeft.value.takeIf { timeWasEnabled }
+        val newLog = MoveLog(
+            isPlayer = isPlayer,
+            row = row,
+            col = col,
+            result = result,
+            timeRemaining = currentTimeLeft
+        )
+        _moveLogs.value = _moveLogs.value + newLog
+    }
 
     private fun startTimer() {
         timerJob?.cancel()
@@ -189,14 +163,12 @@ class GameViewModel : ViewModel() {
 
     private fun tryPlaceShipManually(startPos: Position) {
         if (_currentShipIndex.value >= shipsToPlaceSizes.size) return
-
         val shipSize = shipsToPlaceSizes[_currentShipIndex.value]
         val horizontal = _isHorizontal.value
         val board = _playerBoard.value
 
         if (board.canPlaceShip(startPos, shipSize, horizontal)) {
             val updatedBoard = board.placeShip(startPos, shipSize, horizontal)
-            
             val shipPositions = (0 until shipSize).map { i ->
                 val row = if (horizontal) startPos.row else startPos.row + i
                 val col = if (horizontal) startPos.col + i else startPos.col
@@ -228,11 +200,9 @@ class GameViewModel : ViewModel() {
 
     private fun placeEnemyShipsRandomly(boardSize: Int) {
         var tempBoard = Board.createEmpty(boardSize)
-
         for (shipSize in shipsToPlaceSizes) {
             var isPlaced = false
             var attempts = 0
-
             while (!isPlaced && attempts < 500) {
                 attempts++
                 val isHorizontal = Random.nextBoolean()
@@ -242,7 +212,6 @@ class GameViewModel : ViewModel() {
 
                 if (tempBoard.canPlaceShip(startPos, shipSize, isHorizontal)) {
                     tempBoard = tempBoard.placeShip(startPos, shipSize, isHorizontal)
-                    
                     val shipPositions = (0 until shipSize).map { i ->
                         val row = if (isHorizontal) startRow else startRow + i
                         val col = if (isHorizontal) startCol + i else startCol
@@ -263,8 +232,10 @@ class GameViewModel : ViewModel() {
         if (clickedCell.state != CellState.HIDDEN) return
 
         val newState = if (clickedCell.hasShip) CellState.HIT else CellState.MISS
-        val updatedBoard = currentBoard.updateCell(position, newState)
 
+        logMove(isPlayer = true, row = position.row, col = position.col, result = if (newState == CellState.HIT) "Hit" else "Miss")
+
+        val updatedBoard = currentBoard.updateCell(position, newState)
         _enemyBoard.value = updatedBoard
         updateEnemyFleetStatus(updatedBoard)
 
@@ -313,6 +284,8 @@ class GameViewModel : ViewModel() {
 
         val clickedCell = board.getCell(target)
         val newState = if (clickedCell.hasShip) CellState.HIT else CellState.MISS
+
+        logMove(isPlayer = false, row = target.row, col = target.col, result = if (newState == CellState.HIT) "Hit" else "Miss")
 
         val updatedBoard = board.updateCell(target, newState)
         _playerBoard.value = updatedBoard

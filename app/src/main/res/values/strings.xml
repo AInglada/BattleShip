@@ -57,4 +57,22 @@
     <string name="email_subject_format">Log - %1$s</string>
     <string name="results_btn_play_again">Play Again</string>
     <string name="menu_btn_history">Game History</string>
+
+    <string name="history_empty_list">No matches played yet.</string>
+    <string name="history_empty_detail">Select a match to view details and logs.</string>
+    <string name="history_detail_title">Match Details</string>
+    <string name="history_detail_commander">Commander</string>
+    <string name="history_detail_date">Date</string>
+    <string name="history_detail_outcome">Outcome</string>
+    <string name="history_detail_grid">Grid Size</string>
+    <string name="history_detail_grid_format">%1$d x %2$d</string>
+    <string name="history_detail_time">Total Time</string>
+    <string name="history_detail_time_format">%1$d seconds</string>
+
+    <string name="history_log_title">Move Log (%1$d)</string>
+    <string name="history_log_empty">No move data available for this match.</string>
+    <string name="history_log_actor_player">Player</string>
+    <string name="history_log_actor_ai">AI</string>
+    <string name="history_log_action">%1$s fires at (%2$d, %3$d)</string>
+    <string name="history_log_time_remaining">Time remaining: %1$ds</string>
 </resources>

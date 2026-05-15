@@ -4,12 +4,14 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 
 /**
  * Main database configuration class for the application.
  * Uses the Room persistence library to manage the SQLite database.
  */
 @Database(entities = [GameMatchEntity::class], version = 1, exportSchema = false)
+@TypeConverters(Converters::class)
 abstract class BattleshipDatabase : RoomDatabase() {
 
     /**

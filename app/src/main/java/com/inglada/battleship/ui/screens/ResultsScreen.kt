@@ -7,6 +7,8 @@ import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -24,7 +26,7 @@ import java.util.Locale
  * Composable that represents the results summary screen.
  *
  * Displays the outcome of the match and allows the user to export the game log via email,
- * play again, or exit the application.
+ * play again, return to the main menu, or exit the application.
  *
  * @param playerName Alias of the player.
  * @param gridSize Dimensions of the game grid.
@@ -32,9 +34,11 @@ import java.util.Locale
  * @param isTimeOut Whether the game ended due to a timeout.
  * @param timeSpent Total time spent in the match in seconds.
  * @param isHardMode Whether the game was played in hard difficulty mode.
- * @param onPlayAgain Callback to navigate back to the configuration screen for a new match.
+ * @param onPlayAgain Callback to navigate back to the game screen for a new match.
+ * @param onBackToMenu Callback to safely navigate back to the main menu.
  * @param onExit Callback to close the application.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResultsScreen(
     playerName: String,
@@ -44,6 +48,7 @@ fun ResultsScreen(
     timeSpent: Int,
     isHardMode: Boolean,
     onPlayAgain: () -> Unit,
+    onBackToMenu: () -> Unit,
     onExit: () -> Unit
 ) {
     val context = LocalContext.current
@@ -83,72 +88,83 @@ fun ResultsScreen(
     val emailSubject = stringResource(id = R.string.email_subject_format, dateTimeText)
     val chooserTitle = stringResource(id = R.string.results_email_chooser)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .systemBarsPadding()
-            .padding(24.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = stringResource(id = R.string.results_title),
-            style = MaterialTheme.typography.headlineMedium
-        )
-
-        OutlinedTextField(
-            value = dateTimeText,
-            onValueChange = { dateTimeText = it },
-            label = { Text(text = stringResource(id = R.string.results_date_time)) },
-            readOnly = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = logText,
-            onValueChange = { logText = it },
-            label = { Text(text = stringResource(id = R.string.results_log_data)) },
-            readOnly = true,
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 4
-        )
-
-        OutlinedTextField(
-            value = emailText,
-            onValueChange = { emailText = it },
-            label = { Text(text = stringResource(id = R.string.results_email_recipient)) },
-            isError = emailText.isBlank(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = { sendEmail(context, emailText, emailSubject, logText, chooserTitle) },
-            enabled = emailText.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(id = R.string.results_btn_send))
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(id = R.string.results_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onBackToMenu) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Menu")
+                    }
+                }
+            )
         }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = dateTimeText,
+                onValueChange = { dateTimeText = it },
+                label = { Text(text = stringResource(id = R.string.results_date_time)) },
+                readOnly = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = logText,
+                onValueChange = { logText = it },
+                label = { Text(text = stringResource(id = R.string.results_log_data)) },
+                readOnly = true,
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 4
+            )
+
+            OutlinedTextField(
+                value = emailText,
+                onValueChange = { emailText = it },
+                label = { Text(text = stringResource(id = R.string.results_email_recipient)) },
+                isError = emailText.isBlank(),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Button(
-                onClick = onPlayAgain,
-                modifier = Modifier.weight(1f)
+                onClick = { sendEmail(context, emailText, emailSubject, logText, chooserTitle) },
+                enabled = emailText.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(stringResource(id = R.string.results_btn_play_again))
+                Text(stringResource(id = R.string.results_btn_send))
             }
 
-            OutlinedButton(
-                onClick = onExit,
-                modifier = Modifier.weight(1f)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(stringResource(id = R.string.menu_btn_exit))
+                Button(
+                    onClick = onPlayAgain,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(stringResource(id = R.string.results_btn_play_again))
+                }
+
+                OutlinedButton(
+                    onClick = onExit,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(stringResource(id = R.string.menu_btn_exit))
+                }
             }
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }

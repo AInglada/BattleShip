@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.inglada.battleship.R
 import com.inglada.battleship.data.GameMatchEntity
+import com.inglada.battleship.model.MoveLog
 import com.inglada.battleship.viewmodel.HistoryViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -31,6 +32,7 @@ import java.util.Locale
  * Adaptive screen that displays the history of played matches.
  * Utilizes Material 3 Adaptive Layouts to provide a mono-panel design on smartphones
  * and a bi-panel (list-detail) design on tablets.
+ * Includes full sequential move logging.
  *
  * @param viewModel The ViewModel providing the match history state.
  * @param onBackClicked Callback to return to the main menu.
@@ -43,10 +45,8 @@ fun HistoryScreen(
 ) {
     val matches by viewModel.matches.collectAsState()
 
-    // The navigator handles the adaptive magic (split screen vs single screen)
     val navigator = rememberListDetailPaneScaffoldNavigator<GameMatchEntity>()
 
-    // Intercept hardware back button to navigate back from detail to list on smartphones
     BackHandler(navigator.canNavigateBack()) {
         navigator.navigateBack()
     }
@@ -86,13 +86,12 @@ fun HistoryScreen(
                     if (currentMatch != null) {
                         MatchDetailPane(match = currentMatch)
                     } else {
-                        // Empty state when nothing is selected on a tablet
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Select a match to view details",
+                                text = stringResource(id = R.string.history_empty_detail),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = Color.Gray
                             )
@@ -114,7 +113,10 @@ private fun MatchListPane(
 ) {
     if (matches.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = "No matches played yet.", style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = stringResource(id = R.string.history_empty_list),
+                style = MaterialTheme.typography.bodyLarge
+            )
         }
     } else {
         LazyColumn(
@@ -147,7 +149,7 @@ private fun MatchListPane(
 }
 
 /**
- * Composable representing the detailed view of a selected match.
+ * Composable representing the detailed view of a selected match, including its complete move log.
  */
 @Composable
 private fun MatchDetailPane(match: GameMatchEntity) {
@@ -157,24 +159,66 @@ private fun MatchDetailPane(match: GameMatchEntity) {
             .padding(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Column(
-            modifier = Modifier.padding(24.dp),
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Match Details",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Divider()
-            DetailRow(label = "Commander", value = match.playerName)
-            DetailRow(
-                label = "Date",
-                value = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date(match.timestamp))
-            )
-            DetailRow(label = "Outcome", value = match.outcome)
-            DetailRow(label = "Grid Size", value = "${match.gridSize} x ${match.gridSize}")
-            DetailRow(label = "Time Spent", value = "${match.timeSpent} seconds")
+            // Match Summary Section
+            item {
+                Text(
+                    text = stringResource(id = R.string.history_detail_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                DetailRow(
+                    label = stringResource(id = R.string.history_detail_commander),
+                    value = match.playerName
+                )
+                DetailRow(
+                    label = stringResource(id = R.string.history_detail_date),
+                    value = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date(match.timestamp))
+                )
+                DetailRow(
+                    label = stringResource(id = R.string.history_detail_outcome),
+                    value = match.outcome
+                )
+                DetailRow(
+                    label = stringResource(id = R.string.history_detail_grid),
+                    value = stringResource(id = R.string.history_detail_grid_format, match.gridSize, match.gridSize)
+                )
+                DetailRow(
+                    label = stringResource(id = R.string.history_detail_time),
+                    value = stringResource(id = R.string.history_detail_time_format, match.timeSpent)
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = stringResource(id = R.string.history_log_title, match.moveLogs.size),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+
+            // Logs List Section
+            if (match.moveLogs.isEmpty()) {
+                item {
+                    Text(
+                        text = stringResource(id = R.string.history_log_empty),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.Gray
+                    )
+                }
+            } else {
+                items(match.moveLogs) { log ->
+                    MoveLogItem(log = log)
+                }
+            }
         }
     }
 }
@@ -187,5 +231,45 @@ private fun DetailRow(label: String, value: String) {
     ) {
         Text(text = label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
         Text(text = value, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+/**
+ * Visual representation of a single move in the log history.
+ */
+@Composable
+private fun MoveLogItem(log: MoveLog) {
+    val actorPlayer = stringResource(id = R.string.history_log_actor_player)
+    val actorAI = stringResource(id = R.string.history_log_actor_ai)
+    val actor = if (log.isPlayer) actorPlayer else actorAI
+    val resultColor = if (log.result == "Hit") Color(0xFF2E7D32) else Color.DarkGray
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(
+                text = stringResource(id = R.string.history_log_action, actor, log.row, log.col),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
+            if (log.timeRemaining != null) {
+                Text(
+                    text = stringResource(id = R.string.history_log_time_remaining, log.timeRemaining),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+        }
+        Text(
+            text = log.result.uppercase(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = resultColor
+        )
     }
 }
