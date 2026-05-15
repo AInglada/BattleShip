@@ -56,4 +56,5 @@
     <string name="results_diff_hard">Hard (Tactical)</string>
     <string name="email_subject_format">Log - %1$s</string>
     <string name="results_btn_play_again">Play Again</string>
+    <string name="menu_btn_history">Game History</string>
 </resources>

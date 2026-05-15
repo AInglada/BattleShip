@@ -27,11 +27,12 @@ import com.inglada.battleship.data.UserPreferencesRepository
  * Composable that represents the main menu screen of the application.
  *
  * Provides a Scaffold layout with a TopAppBar for configuration access, and central
- * action buttons to start a new game with saved preferences, view instructions, or exit.
+ * action buttons to start a new game, view history, read instructions, or exit.
  *
  * @param repository The repository to read the current user preferences before starting a game.
  * @param onNavigateToSettings Callback to open the configuration screen.
  * @param onStartGame Callback to initiate the game session with the loaded parameters.
+ * @param onViewHistory Callback to navigate to the match history screen.
  * @param onHelp Callback to navigate to the help screen.
  * @param onExit Callback to close the application.
  */
@@ -41,6 +42,7 @@ fun MainMenuScreen(
     repository: UserPreferencesRepository,
     onNavigateToSettings: () -> Unit,
     onStartGame: (playerName: String, gridSize: Int, isTimeEnabled: Boolean, timeLimit: Int, isHardMode: Boolean) -> Unit,
+    onViewHistory: () -> Unit,
     onHelp: () -> Unit,
     onExit: () -> Unit
 ) {
@@ -91,6 +93,15 @@ fun MainMenuScreen(
                     .padding(bottom = 16.dp)
             ) {
                 Text(text = stringResource(id = R.string.menu_btn_start))
+            }
+
+            Button(
+                onClick = onViewHistory,
+                modifier = Modifier
+                    .fillMaxWidth(0.6f)
+                    .padding(bottom = 16.dp)
+            ) {
+                Text(text = stringResource(id = R.string.menu_btn_history))
             }
 
             Button(

@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -12,17 +13,25 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.inglada.battleship.data.BattleshipDatabase
+import com.inglada.battleship.data.GameMatchEntity
+import com.inglada.battleship.data.MatchRepository
 import com.inglada.battleship.data.UserPreferencesRepository
 import com.inglada.battleship.data.dataStore
 import com.inglada.battleship.ui.screens.ConfigScreen
 import com.inglada.battleship.ui.screens.GameScreen
 import com.inglada.battleship.ui.screens.HelpScreen
+import com.inglada.battleship.ui.screens.HistoryScreen
 import com.inglada.battleship.ui.screens.MainMenuScreen
 import com.inglada.battleship.ui.screens.ResultsScreen
 import com.inglada.battleship.viewmodel.ConfigViewModel
 import com.inglada.battleship.viewmodel.ConfigViewModelFactory
+import com.inglada.battleship.viewmodel.HistoryViewModel
+import com.inglada.battleship.viewmodel.HistoryViewModelFactory
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.util.Date
 
 /**
  * Defines the unique routes and navigation arguments for each screen in the application.
@@ -36,15 +45,14 @@ sealed class AppScreens(val route: String) {
     object Help : AppScreens("help_screen")
     /** Route for the game configuration settings screen. */
     object Configuration : AppScreens("configuration_screen")
+    /** Route for the adaptive match history screen. */
+    object History : AppScreens("history_screen")
 
     /**
      * Route for the active game session.
      * Includes parameters for player preferences and game rules.
      */
     object Game : AppScreens("game_screen/{playerName}/{gridSize}/{isTimeEnabled}/{timeLimit}/{isHardMode}") {
-        /**
-         * Helper function to build the navigation route with the required arguments.
-         */
         fun createRoute(playerName: String, gridSize: Int, isTimeEnabled: Boolean, timeLimit: Int, isHardMode: Boolean): String {
             return "game_screen/$playerName/$gridSize/$isTimeEnabled/$timeLimit/$isHardMode"
         }
@@ -55,9 +63,6 @@ sealed class AppScreens(val route: String) {
      * Includes metrics and outcome data for logging.
      */
     object Results : AppScreens("results_screen/{playerName}/{gridSize}/{didWin}/{isTimeOut}/{timeSpent}/{isHardMode}") {
-        /**
-         * Helper function to build the navigation route with the required arguments.
-         */
         fun createRoute(playerName: String, gridSize: Int, didWin: Boolean, isTimeOut: Boolean, timeSpent: Int, isHardMode: Boolean): String {
             return "results_screen/$playerName/$gridSize/$didWin/$isTimeOut/$timeSpent/$isHardMode"
         }
@@ -73,9 +78,14 @@ sealed class AppScreens(val route: String) {
 fun AppNavigation() {
     val navController = rememberNavController()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     // Initialize the DataStore repository singleton
     val preferencesRepository = remember { UserPreferencesRepository(context.dataStore) }
+
+    // Initialize the Room Database and Match Repository
+    val database = remember { BattleshipDatabase.getDatabase(context) }
+    val matchRepository = remember { MatchRepository(database.gameMatchDao()) }
 
     NavHost(
         navController = navController,
@@ -88,13 +98,13 @@ fun AppNavigation() {
                 onStartGame = { pName, size, timeEnabled, limit, hard ->
                     navController.navigate(AppScreens.Game.createRoute(pName, size, timeEnabled, limit, hard))
                 },
+                onViewHistory = { navController.navigate(AppScreens.History.route) },
                 onHelp = { navController.navigate(AppScreens.Help.route) },
                 onExit = { (context as? Activity)?.finish() }
             )
         }
 
         composable(route = AppScreens.Configuration.route) {
-            // Instantiate the ViewModel using the factory to inject the repository
             val configViewModel: ConfigViewModel = viewModel(
                 factory = ConfigViewModelFactory(preferencesRepository)
             )
@@ -105,8 +115,18 @@ fun AppNavigation() {
                 onBackClicked = { navController.popBackStack() },
                 onSaveConfigClicked = { playerName, gridSize, isTimeEnabled, timeLimit, isHardMode ->
                     configViewModel.saveConfig(playerName, gridSize, isTimeEnabled, timeLimit, isHardMode)
-                    navController.popBackStack() // Return to Main Menu after saving
+                    navController.popBackStack()
                 }
+            )
+        }
+
+        composable(route = AppScreens.History.route) {
+            val historyViewModel: HistoryViewModel = viewModel(
+                factory = HistoryViewModelFactory(matchRepository)
+            )
+            HistoryScreen(
+                viewModel = historyViewModel,
+                onBackClicked = { navController.popBackStack() }
             )
         }
 
@@ -133,6 +153,23 @@ fun AppNavigation() {
                 timeLimit = timeLimit,
                 isHardMode = isHardMode,
                 onNavigateToResults = { pName, size, win, timeout, time, hard ->
+
+                    val finalOutcome = when {
+                        win -> "Victory"
+                        timeout -> "Defeat (Timeout)"
+                        else -> "Defeat (AI)"
+                    }
+                    val matchEntity = GameMatchEntity(
+                        playerName = pName,
+                        timestamp = Date().time,
+                        gridSize = size,
+                        timeSpent = time,
+                        outcome = finalOutcome
+                    )
+                    coroutineScope.launch {
+                        matchRepository.insertMatch(matchEntity)
+                    }
+
                     navController.navigate(
                         AppScreens.Results.createRoute(pName, size, win, timeout, time, hard)
                     ) {
@@ -168,7 +205,6 @@ fun AppNavigation() {
                 timeSpent = timeSpent,
                 isHardMode = isHardMode,
                 onPlayAgain = {
-                    // Play Again directly reads current preferences and starts game
                     runBlocking {
                         val pName = preferencesRepository.playerName.first()
                         val size = preferencesRepository.gridSize.first()
