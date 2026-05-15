@@ -2,17 +2,27 @@ package com.inglada.battleship.ui.navigation
 
 import android.app.Activity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.inglada.battleship.data.UserPreferencesRepository
+import com.inglada.battleship.data.dataStore
 import com.inglada.battleship.ui.screens.ConfigScreen
-import com.inglada.battleship.ui.screens.MainMenuScreen
 import com.inglada.battleship.ui.screens.GameScreen
 import com.inglada.battleship.ui.screens.HelpScreen
+import com.inglada.battleship.ui.screens.MainMenuScreen
 import com.inglada.battleship.ui.screens.ResultsScreen
+import com.inglada.battleship.viewmodel.ConfigViewModel
+import com.inglada.battleship.viewmodel.ConfigViewModelFactory
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 /**
  * Defines the unique routes and navigation arguments for each screen in the application.
@@ -57,13 +67,15 @@ sealed class AppScreens(val route: String) {
 /**
  * The root navigation component that manages the screen transitions and back stack.
  *
- * It defines the [NavHost] and all its composable destinations, extracting
- * navigation arguments where necessary.
+ * It defines the [NavHost], instantiates repositories, and configures all composable destinations.
  */
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
     val context = LocalContext.current
+
+    // Initialize the DataStore repository singleton
+    val preferencesRepository = remember { UserPreferencesRepository(context.dataStore) }
 
     NavHost(
         navController = navController,
@@ -71,19 +83,29 @@ fun AppNavigation() {
     ) {
         composable(route = AppScreens.MainMenu.route) {
             MainMenuScreen(
-                onStartGame = { navController.navigate(AppScreens.Configuration.route) },
+                repository = preferencesRepository,
+                onNavigateToSettings = { navController.navigate(AppScreens.Configuration.route) },
+                onStartGame = { pName, size, timeEnabled, limit, hard ->
+                    navController.navigate(AppScreens.Game.createRoute(pName, size, timeEnabled, limit, hard))
+                },
                 onHelp = { navController.navigate(AppScreens.Help.route) },
                 onExit = { (context as? Activity)?.finish() }
             )
         }
 
         composable(route = AppScreens.Configuration.route) {
+            // Instantiate the ViewModel using the factory to inject the repository
+            val configViewModel: ConfigViewModel = viewModel(
+                factory = ConfigViewModelFactory(preferencesRepository)
+            )
+            val uiState by configViewModel.uiState.collectAsState()
+
             ConfigScreen(
+                uiState = uiState,
                 onBackClicked = { navController.popBackStack() },
-                onStartGameClicked = { playerName, gridSize, isTimeEnabled, timeLimit, isHardMode ->
-                    navController.navigate(
-                        AppScreens.Game.createRoute(playerName, gridSize, isTimeEnabled, timeLimit, isHardMode)
-                    )
+                onSaveConfigClicked = { playerName, gridSize, isTimeEnabled, timeLimit, isHardMode ->
+                    configViewModel.saveConfig(playerName, gridSize, isTimeEnabled, timeLimit, isHardMode)
+                    navController.popBackStack() // Return to Main Menu after saving
                 }
             )
         }
@@ -114,7 +136,7 @@ fun AppNavigation() {
                     navController.navigate(
                         AppScreens.Results.createRoute(pName, size, win, timeout, time, hard)
                     ) {
-                        popUpTo(AppScreens.Game.route) { inclusive = true }
+                        popUpTo(AppScreens.MainMenu.route)
                     }
                 }
             )
@@ -146,8 +168,16 @@ fun AppNavigation() {
                 timeSpent = timeSpent,
                 isHardMode = isHardMode,
                 onPlayAgain = {
-                    navController.navigate(AppScreens.Configuration.route) {
-                        popUpTo(AppScreens.MainMenu.route)
+                    // Play Again directly reads current preferences and starts game
+                    runBlocking {
+                        val pName = preferencesRepository.playerName.first()
+                        val size = preferencesRepository.gridSize.first()
+                        val timeEnabled = preferencesRepository.isTimeEnabled.first()
+                        val limit = preferencesRepository.timeLimit.first()
+                        val hard = preferencesRepository.isHardMode.first()
+                        navController.navigate(AppScreens.Game.createRoute(pName, size, timeEnabled, limit, hard)) {
+                            popUpTo(AppScreens.MainMenu.route)
+                        }
                     }
                 },
                 onExit = { (context as? Activity)?.finish() }

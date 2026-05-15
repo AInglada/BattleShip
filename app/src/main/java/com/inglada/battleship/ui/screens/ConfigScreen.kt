@@ -10,30 +10,51 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import com.inglada.battleship.R
+import com.inglada.battleship.viewmodel.ConfigUiState
 
 /**
  * Composable that represents the game configuration screen.
- *
  * Allows the user to customize player alias, grid size, time limits, and AI difficulty.
  *
+ * @param uiState The current configuration state loaded from preferences.
  * @param onBackClicked Callback executed when the back navigation is triggered.
- * @param onStartGameClicked Callback executed to initiate the game with the selected parameters.
+ * @param onSaveConfigClicked Callback executed to persist the selected configuration to the DataStore and navigate back.
  */
 @Composable
 fun ConfigScreen(
+    uiState: ConfigUiState,
     onBackClicked: () -> Unit,
-    onStartGameClicked: (playerName: String, gridSize: Int, isTimeEnabled: Boolean, timeLimit: Int, isHardMode: Boolean) -> Unit
+    onSaveConfigClicked: (playerName: String, gridSize: Int, isTimeEnabled: Boolean, timeLimit: Int, isHardMode: Boolean) -> Unit
 ) {
-    val defaultPlayerName = stringResource(id = R.string.config_default_player)
-    var playerName by rememberSaveable { mutableStateOf(defaultPlayerName) }
+    if (uiState.isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    var isInitialized by rememberSaveable { mutableStateOf(false) }
+    var playerName by rememberSaveable { mutableStateOf("") }
     var gridSize by rememberSaveable { mutableFloatStateOf(8f) }
     var isTimeEnabled by rememberSaveable { mutableStateOf(false) }
-    var timeLimit by rememberSaveable { mutableFloatStateOf(15f) }
+    var timeLimit by rememberSaveable { mutableFloatStateOf(60f) }
     var isHardMode by rememberSaveable { mutableStateOf(false) }
+
+    // Initialize local state with loaded preferences only once
+    LaunchedEffect(uiState) {
+        if (!isInitialized) {
+            playerName = uiState.playerName
+            gridSize = uiState.gridSize.toFloat()
+            isTimeEnabled = uiState.isTimeEnabled
+            timeLimit = uiState.timeLimit.toFloat()
+            isHardMode = uiState.isHardMode
+            isInitialized = true
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -45,10 +66,11 @@ fun ConfigScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-            IconButton(onClick = { onBackClicked() }) {
+            IconButton(onClick = onBackClicked) {
                 Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
         }
+
         Text(
             text = stringResource(id = R.string.config_title),
             style = MaterialTheme.typography.headlineMedium
@@ -103,8 +125,8 @@ fun ConfigScreen(
                 Slider(
                     value = timeLimit,
                     onValueChange = { timeLimit = it },
-                    valueRange = 5f..30f,
-                    steps = 4
+                    valueRange = 30f..120f,
+                    steps = 8
                 )
             }
         }
@@ -134,7 +156,7 @@ fun ConfigScreen(
 
         Button(
             onClick = {
-                onStartGameClicked(
+                onSaveConfigClicked(
                     playerName,
                     gridSize.roundToInt(),
                     isTimeEnabled,

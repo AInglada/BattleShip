@@ -2,6 +2,7 @@
     <string name="app_name">Battleship</string>
 
     <string name="menu_title">BATTLESHIP</string>
+    <string name="menu_title_small">Battleship</string>
     <string name="menu_btn_start">Start Game</string>
     <string name="menu_btn_help">Help</string>
     <string name="menu_btn_exit">Exit</string>
