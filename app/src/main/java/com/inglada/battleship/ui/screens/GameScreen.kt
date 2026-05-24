@@ -611,9 +611,8 @@ fun LiveLogList(logs: List<MoveLog>, modifier: Modifier = Modifier) {
                 val actorPlayer = stringResource(id = R.string.history_log_actor_player)
                 val actorAI = stringResource(id = R.string.history_log_actor_ai)
                 val actor = if (log.isPlayer) actorPlayer else actorAI
-                
-                val hitText = stringResource(id = R.string.move_result_hit)
-                val isHit = log.result == hitText
+
+                val isHit = log.result == "Hit"
                 val resultColor = if (isHit) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
                 Row(
